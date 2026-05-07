@@ -4,6 +4,11 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 CONFIG_FILE="${REPO_ROOT}/supabase/config.toml"
+
+# Lokale Supabase-CLI (aus npm install) bevorzugen, um Konflikte mit globalem Install zu vermeiden
+if [[ -d "${REPO_ROOT}/node_modules/.bin" ]]; then
+  export PATH="${REPO_ROOT}/node_modules/.bin:${PATH}"
+fi
 PORTS_FILE="${REPO_ROOT}/.ports"
 TARGET_DIR="${PWD}"
 TARGET_ENV_FILE="${TARGET_DIR}/.env.local"

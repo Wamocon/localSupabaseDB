@@ -9,6 +9,10 @@ $ConfigFile = Join-Path $RepoRoot "supabase\config.toml"
 $EnvFile    = Join-Path $RepoRoot ".env.local"
 $EnvBackup  = Join-Path $RepoRoot ".env.local.backup"
 
+# Lokale Supabase-CLI (aus npm install) bevorzugen, um Konflikte mit globalem Install zu vermeiden
+$localBin = Join-Path $RepoRoot "node_modules\.bin"
+if (Test-Path $localBin) { $env:PATH = "$localBin;$env:PATH" }
+
 function Write-Info($msg) { Write-Host $msg -ForegroundColor Green }
 function Write-Warn($msg) { Write-Host $msg -ForegroundColor Yellow }
 function Write-Err($msg)  { Write-Host $msg -ForegroundColor Red; exit 1 }

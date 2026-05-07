@@ -54,24 +54,20 @@ Docker Desktop ist die Anwendung, die alle Supabase-Dienste als Container auf de
 
 ### 2) Supabase CLI
 
-Die Supabase CLI ist ein Befehlszeilenprogramm, das die lokalen Supabase-Container startet und verwaltet.
+Die Supabase CLI ist ein Befehlszeilenprogramm, das die lokalen Supabase-Container startet und verwaltet. Die korrekte Version ist bereits in der `package.json` dieses Repos festgelegt.
 
 ```powershell
-# Windows PowerShell (empfohlen)
-npm install supabase --save-dev
+# Windows PowerShell / macOS / Linux – im Repo-Ordner ausführen
+npm install
 ```
 
-```bash
-# macOS (Homebrew)
-brew install supabase/tap/supabase
+Das reicht. Die Skripte (`setup.ps1`, `stop.ps1` usw.) verwenden automatisch die lokale Version aus `node_modules/.bin/` – kein Konflikt mit einer eventuell global installierten Version.
 
-# direkter Download (GitHub Releases)
-# siehe: https://github.com/supabase/cli/releases
-```
+> **Achtung:** Führe **nicht** `npm install supabase` oder `npm install -g supabase` aus – das installiert eine andere (möglicherweise inkompatible) Version separat und verursacht genau die Versions-Konflikte, die damit vermieden werden sollen.
 
-Installation prüfen:
+Manuell prüfen (nach `npm install`):
 ```powershell
-supabase --version
+npx supabase --version
 ```
 
 ### 3) Node.js
@@ -145,14 +141,17 @@ Lokal zeigen diese auf `http://127.0.0.1:54321`, in der Cloud auf dein Cloud-Pro
 
 ## Erstes Setup – Schritt für Schritt
 
-### Schritt 1 – Repository klonen
+### Schritt 1 – Repository klonen und installieren
 
 Öffne das VS Code Terminal (`Strg+ö`) und führe aus:
 
 ```powershell
 git clone https://github.com/Wamocon/localSupabaseDB.git
 cd localSupabaseDB
+npm install
 ```
+
+`npm install` installiert die Supabase CLI in der exakt richtigen Version lokal ins Repo. Die Skripte nutzen sie automatisch.
 
 ### Schritt 2 – Docker Desktop starten
 

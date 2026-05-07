@@ -6,6 +6,10 @@ $ErrorActionPreference = "Continue"
 $RepoRoot   = Split-Path -Parent $PSScriptRoot
 $ConfigFile = Join-Path $RepoRoot "supabase\config.toml"
 
+# Lokale Supabase-CLI bevorzugen
+$localBin = Join-Path $RepoRoot "node_modules\.bin"
+if (Test-Path $localBin) { $env:PATH = "$localBin;$env:PATH" }
+
 function Write-Info($msg) { Write-Host $msg -ForegroundColor Green }
 function Write-Warn($msg) { Write-Host $msg -ForegroundColor Yellow }
 function Write-Err($msg)  { Write-Host $msg -ForegroundColor Red; exit 1 }

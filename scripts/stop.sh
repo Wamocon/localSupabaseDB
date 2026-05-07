@@ -6,6 +6,11 @@ REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 PORTS_FILE="${REPO_ROOT}/.ports"
 CONFIG_FILE="${REPO_ROOT}/supabase/config.toml"
 
+# Lokale Supabase-CLI bevorzugen
+if [[ -d "${REPO_ROOT}/node_modules/.bin" ]]; then
+  export PATH="${REPO_ROOT}/node_modules/.bin:${PATH}"
+fi
+
 GREEN='\033[0;32m'
 RED='\033[0;31m'
 YELLOW='\033[1;33m'
