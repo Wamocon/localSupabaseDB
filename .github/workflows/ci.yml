@@ -1,0 +1,21 @@
+name: CI – Unittests & Validierung
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+
+jobs:
+  validate:
+    name: Syntaxchecks, Unittests & 100% Coverage
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Repository auschecken
+        uses: actions/checkout@v4
+
+      - name: Skripte ausführbar machen
+        run: chmod +x scripts/validate.sh tests/run_all.sh tests/check_coverage.sh tests/lib.sh tests/test_setup.sh tests/test_stop.sh tests/test_status.sh
+
+      - name: Syntaxchecks, Unittests und Coverage-Prüfung ausführen
+        run: ./scripts/validate.sh

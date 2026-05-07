@@ -1,0 +1,3 @@
+-- Add optional local test data here.
+-- Example:
+-- INSERT INTO public.todos (title) VALUES ('First local todo');
