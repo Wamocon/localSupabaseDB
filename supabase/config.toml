@@ -3,7 +3,7 @@
 #
 # project_id controls Docker volume + container naming.
 # Change this per app to isolate data. Use setup.sh --app <name> to switch.
-project_id = "schufacleaner"
+project_id = "abc"
 
 [api]
 # API endpoint exposed to your application.
