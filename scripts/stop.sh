@@ -104,7 +104,7 @@ stop_instance() {
   cov_hit "stop_run_fail"
   log_warn "supabase stop reported an error. Attempting forced container cleanup..."
   force_remove_containers
-  return 0
+  return 1
 }
 
 main() {
