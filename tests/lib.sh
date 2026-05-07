@@ -53,7 +53,7 @@ write_stub() {
   local path="$1"
   local content="$2"
   cat > "${path}" <<EOS
-#!/usr/bin/env bash
+#!/bin/sh
 ${content}
 EOS
   chmod +x "${path}"
