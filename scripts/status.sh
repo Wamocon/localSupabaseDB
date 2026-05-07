@@ -11,6 +11,12 @@ RED='\033[0;31m'
 YELLOW='\033[1;33m'
 NC='\033[0m'
 
+cov_hit() {
+  if [ -n "${COVERAGE_FILE:-}" ]; then
+    printf '%s\n' "$1" >> "${COVERAGE_FILE}"
+  fi
+}
+
 log_info() {
   printf "%b%s%b\n" "${GREEN}" "$1" "${NC}"
 }
@@ -37,30 +43,67 @@ apply_ports_to_config() {
     "${CONFIG_FILE}"
 
   rm -f "${CONFIG_FILE}.bak"
+  cov_hit "status_patch_config"
 }
 
-if [ -f "${PORTS_FILE}" ]; then
-  log_info "Configured ports (.ports):"
-  cat "${PORTS_FILE}"
-  # shellcheck disable=SC1090
-  source "${PORTS_FILE}"
-  apply_ports_to_config "${API_PORT}" "${DB_PORT}" "${STUDIO_PORT}" "${INBUCKET_PORT}"
-else
+sync_ports_if_available() {
+  if [ -f "${PORTS_FILE}" ]; then
+    cov_hit "status_ports_present"
+    log_info "Configured ports (.ports):"
+    cat "${PORTS_FILE}"
+    # shellcheck disable=SC1090
+    source "${PORTS_FILE}"
+    apply_ports_to_config "${API_PORT}" "${DB_PORT}" "${STUDIO_PORT}" "${INBUCKET_PORT}"
+    return 0
+  fi
+
+  cov_hit "status_ports_missing"
   log_warn "No .ports file found. Run ./scripts/setup.sh to initialize ports."
-fi
+}
 
-if ! command -v supabase >/dev/null 2>&1; then
-  log_error "Supabase CLI is not installed."
-  exit 1
-fi
+check_supabase_cli() {
+  if ! command -v supabase >/dev/null 2>&1; then
+    cov_hit "status_supabase_missing"
+    log_error "Supabase CLI is not installed."
+    return 1
+  fi
 
-status_output="$(cd "${REPO_ROOT}" && supabase status 2>&1 || true)"
+  cov_hit "status_supabase_ok"
+  return 0
+}
 
-if printf "%s\n" "${status_output}" | grep -qi "stopped\|not running\|cannot find"; then
-  log_error "Supabase instance does not appear to be running."
+fetch_status() {
+  status_output="$(cd "${REPO_ROOT}" && supabase status 2>&1 || true)"
+  cov_hit "status_fetch"
+}
+
+validate_status_output() {
+  if printf "%s\n" "${status_output}" | grep -qi "stopped\|not running\|cannot find"; then
+    cov_hit "status_output_not_running"
+    log_error "Supabase instance does not appear to be running."
+    printf "%s\n" "${status_output}"
+    return 1
+  fi
+
+  cov_hit "status_output_running"
+  return 0
+}
+
+print_status() {
+  log_info "Current Supabase status:"
   printf "%s\n" "${status_output}"
-  exit 1
-fi
+  cov_hit "status_print"
+}
 
-log_info "Current Supabase status:"
-printf "%s\n" "${status_output}"
+main() {
+  sync_ports_if_available
+  check_supabase_cli || return 1
+  fetch_status
+  validate_status_output || return 1
+  print_status
+  cov_hit "status_main_ok"
+}
+
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+  main
+fi
