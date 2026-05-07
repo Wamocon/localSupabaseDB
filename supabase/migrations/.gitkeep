@@ -1,2 +1,2 @@
-# Keep this folder in git.
-# Create migrations with: supabase migration new <name>
+Keep this folder in Git.
+Create migrations with: supabase migration new <name>

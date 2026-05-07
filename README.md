@@ -34,7 +34,7 @@ npm install supabase --save-dev
 
 - Node.js >= 18
 
-> Wichtig: Die Ports **3000–3999 sind für Next.js Apps reserviert**. Dieses Template nutzt ausschließlich Supabase-Ports im **54000er Bereich** (Start bei 54321).
+> Wichtig: In diesem Setup werden die Ports **3000–3999 für Next.js Apps reserviert**. Dieses Template nutzt ausschließlich Supabase-Ports im **54000er Bereich** (Start bei 54321).
 
 ## Konzept (kurz erklärt)
 
@@ -53,8 +53,8 @@ npm install supabase --save-dev
 1. Repository klonen:
 
 ```bash
-git clone https://github.com/Wamocon/localSupabaseDB.git
-cd localSupabaseDB
+git clone https://github.com/<deine-org-oder-user>/<dein-repo-name>.git
+cd <dein-repo-name>
 ```
 
 2. Docker starten (Docker Desktop / Docker Engine muss laufen).

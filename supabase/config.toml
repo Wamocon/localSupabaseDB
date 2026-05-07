@@ -23,7 +23,7 @@ port = 54324
 
 [auth]
 # Placeholder URL for your app. Set this to your own Next.js app URL.
-site_url = "http://your-app-url.local"
+site_url = "http://YOUR_NEXTJS_APP_URL_HERE"
 additional_redirect_urls = []
 
 [auth.email]
