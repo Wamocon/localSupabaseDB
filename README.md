@@ -4,6 +4,34 @@ Template-Repository für lokale Supabase-Entwicklungsumgebungen. Jede Next.js-We
 
 ---
 
+## Schnellstart
+
+> Voraussetzung: [Docker Desktop](https://www.docker.com/products/docker-desktop/) läuft, `npm install` wurde einmalig ausgeführt.
+
+### Starten
+```powershell
+.\scripts\setup.ps1 -App <app-name>
+```
+Erstellt die Datenbank (beim ersten Mal) oder setzt sie fort. Gibt URL + Keys aus.
+
+### Stoppen
+```powershell
+.\scripts\stop.ps1
+```
+Stoppt alle Container. Daten bleiben erhalten.
+
+### Daten dieser App löschen und neu starten
+```powershell
+.\scripts\setup.ps1 -App <app-name> -Reset
+```
+
+### Alles löschen (alle Apps)
+```powershell
+.\scripts\purge.ps1
+```
+
+---
+
 ## Inhaltsverzeichnis
 
 1. [Was ist das hier?](#was-ist-das-hier)
