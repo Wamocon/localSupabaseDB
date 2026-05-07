@@ -135,12 +135,27 @@ supabase db push
 | `./scripts/setup.sh ../app` | Schreibt `.env.local` direkt in den angegebenen App-Ordner |
 | `./scripts/status.sh` | Zeigt Portzuordnung und aktuellen Instanzstatus/Keys |
 | `./scripts/stop.sh` | Stoppt die lokale Supabase-Instanz |
+| `./scripts/validate.sh` | Führt Syntaxchecks, Unittests und Coverage-Checks aus |
 | `supabase start` | Startet lokale Supabase-Services |
 | `supabase stop` | Stoppt lokale Supabase-Services |
 | `supabase status` | Zeigt laufende lokale Services + Keys |
 | `supabase migration new <name>` | Erstellt neue Migration |
 | `supabase db reset` | Setzt lokale DB zurück und spielt Migrations/Seed ein |
 | `supabase db push` | Schiebt Migrations in verbundenes Cloud-Projekt |
+
+## Unittests & Validierung
+
+Dieses Repository enthält ausführliche Bash-Unittests für `setup.sh`, `stop.sh` und `status.sh`, inklusive Fehlerpfaden.
+
+```bash
+# Alles (Syntax + Tests + Coverage)
+./scripts/validate.sh
+
+# Nur Tests + Coverage
+./tests/run_all.sh
+```
+
+Die Coverage wird als marker-basierte Codeabdeckung geprüft (`tests/coverage_markers.txt`) und muss im CI-Check auf **100%** liegen.
 
 ## Wechsel zu Supabase Cloud
 
