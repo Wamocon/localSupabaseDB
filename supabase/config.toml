@@ -1,5 +1,9 @@
 # Supabase CLI local development configuration.
 # Ports intentionally use the 54000 range to avoid 3000-3999 app ports.
+#
+# project_id controls Docker volume + container naming.
+# Change this per app to isolate data. Use setup.sh --app <name> to switch.
+project_id = "schufacleaner"
 
 [api]
 # API endpoint exposed to your application.

@@ -8,6 +8,7 @@ PORTS_FILE="${REPO_ROOT}/.ports"
 TARGET_DIR="${PWD}"
 TARGET_ENV_FILE="${TARGET_DIR}/.env.local"
 TARGET_ENV_BACKUP="${TARGET_DIR}/.env.local.backup"
+project_id=""
 
 GREEN='\033[0;32m'
 RED='\033[0;31m'
@@ -47,6 +48,56 @@ configure_target_dir() {
   TARGET_ENV_BACKUP="${TARGET_DIR}/.env.local.backup"
 }
 
+read_project_id_from_config() {
+  local val
+  val="$(grep '^project_id' "${CONFIG_FILE}" 2>/dev/null | sed 's/project_id *= *"\(.*\)"/\1/' | tail -n1)"
+  printf "%s" "${val:-localSupabaseDB}"
+}
+
+set_project_id() {
+  local app_name="$1"
+  # Sanitize: lowercase, only alphanumeric and hyphens, max 40 chars
+  local sanitized
+  sanitized="$(printf "%s" "${app_name}" \
+    | tr '[:upper:]' '[:lower:]' \
+    | sed 's/[^a-z0-9-]/-/g' \
+    | sed 's/--*/-/g' \
+    | sed 's/^-//;s/-$//' \
+    | cut -c1-40)"
+
+  if [ -z "${sanitized}" ]; then
+    log_error "Invalid app name: '${app_name}'. Use letters, numbers and hyphens only."
+    return 1
+  fi
+
+  project_id="${sanitized}"
+  sed -E -i.bak "s/^project_id = \".*\"/project_id = \"${project_id}\"/" "${CONFIG_FILE}"
+  rm -f "${CONFIG_FILE}.bak"
+  cov_hit "setup_project_id_set"
+  log_info "App: ${project_id}"
+}
+
+check_existing_volume() {
+  local vol_name="supabase_db_${project_id}"
+  if docker volume ls --format '{{.Name}}' 2>/dev/null | grep -qx "${vol_name}"; then
+    cov_hit "setup_volume_exists"
+    log_info "Existing data found for '${project_id}' → resuming."
+  else
+    cov_hit "setup_volume_new"
+    log_info "No existing data for '${project_id}' → starting fresh."
+  fi
+}
+
+reset_volume() {
+  log_warn "Resetting data for app '${project_id}'..."
+  # Stop first to avoid conflicts
+  cd "${REPO_ROOT}" && supabase stop --no-backup 2>&1 || true
+  local vol_name="supabase_db_${project_id}"
+  docker volume rm -f "${vol_name}" >/dev/null 2>&1 || true
+  cov_hit "setup_volume_reset"
+  log_info "Data reset done."
+}
+
 is_port_free() {
   local port="$1"
 
@@ -68,9 +119,27 @@ is_port_free() {
     return 0
   fi
 
+  if command -v netstat >/dev/null 2>&1; then
+    if netstat -an 2>/dev/null | grep -qE "[:.]${port}[[:space:]].*LISTEN"; then
+      cov_hit "setup_port_netstat_busy"
+      return 1
+    fi
+    cov_hit "setup_port_netstat_free"
+    return 0
+  fi
+
+  if command -v ss >/dev/null 2>&1; then
+    if ss -ltn 2>/dev/null | grep -q ":${port}[[:space:]]"; then
+      cov_hit "setup_port_ss_busy"
+      return 1
+    fi
+    cov_hit "setup_port_ss_free"
+    return 0
+  fi
+
   cov_hit "setup_port_no_tool"
-  log_error "Neither 'lsof' nor 'nc' is available to check ports."
-  exit 1
+  log_warn "No port-checking tool found (lsof/nc/netstat/ss). Assuming ports are free."
+  return 0
 }
 
 apply_ports_to_config() {
@@ -108,10 +177,15 @@ check_prerequisites() {
     return 1
   fi
 
+  # Note: supabase --version exits with code 1 on Windows when an update is available.
+  # We only check if the binary is callable, not the exit code.
   if ! supabase --version >/dev/null 2>&1; then
-    cov_hit "setup_prereq_supabase_broken"
-    log_error "Supabase CLI is installed but not working correctly."
-    return 1
+    # Try once more without stderr redirect – some versions write only to stdout
+    if ! supabase --version 2>/dev/null | grep -q '[0-9]'; then
+      cov_hit "setup_prereq_supabase_broken"
+      log_error "Supabase CLI is installed but not working correctly."
+      return 1
+    fi
   fi
 
   cov_hit "setup_prereq_ok"
@@ -159,12 +233,49 @@ EOP
   cov_hit "setup_ports_file_written"
 }
 
+parse_status_output() {
+  local output="$1"
+
+  # Old CLI format: "  API URL: http://..."
+  local val
+  val="$(printf "%s\n" "${output}" | sed -n 's/^ *API URL: *//p' | tail -n1)"
+  [ -n "${val}" ] && api_url="${val}"
+
+  # New CLI format (table): "│ Project URL    │ http://... │"
+  if [ -z "${api_url}" ]; then
+    val="$(printf "%s\n" "${output}" | grep -i 'Project URL' | sed 's/^[^│]*│[^│]*│[[:space:]]*//' | sed 's/[[:space:]]*│.*$//' | tail -n1)"
+    [ -n "${val}" ] && api_url="${val}"
+  fi
+
+  # Old CLI format: "  anon key: eyJh..."
+  val="$(printf "%s\n" "${output}" | sed -n 's/^ *anon key: *//p' | tail -n1)"
+  [ -n "${val}" ] && anon_key="${val}"
+
+  # New CLI format: "│ Publishable │ sb_publishable_... │"
+  if [ -z "${anon_key}" ]; then
+    val="$(printf "%s\n" "${output}" | grep -i 'Publishable' | sed 's/^[^│]*│[^│]*│[[:space:]]*//' | sed 's/[[:space:]]*│.*$//' | tail -n1)"
+    [ -n "${val}" ] && anon_key="${val}"
+  fi
+
+  # Old CLI format: "  service_role key: eyJh..."
+  val="$(printf "%s\n" "${output}" | sed -n 's/^ *service_role key: *//p' | tail -n1)"
+  [ -n "${val}" ] && service_role_key="${val}"
+
+  # New CLI format: "│ Secret      │ sb_secret_... │"
+  if [ -z "${service_role_key}" ]; then
+    val="$(printf "%s\n" "${output}" | grep -i '│[[:space:]]*Secret' | sed 's/^[^│]*│[^│]*│[[:space:]]*//' | sed 's/[[:space:]]*│.*$//' | tail -n1)"
+    [ -n "${val}" ] && service_role_key="${val}"
+  fi
+}
+
 extract_values_from_output() {
   local start_output="$1"
 
-  api_url="$(printf "%s\n" "${start_output}" | sed -n 's/^ *API URL: *//p' | tail -n1)"
-  anon_key="$(printf "%s\n" "${start_output}" | sed -n 's/^ *anon key: *//p' | tail -n1)"
-  service_role_key="$(printf "%s\n" "${start_output}" | sed -n 's/^ *service_role key: *//p' | tail -n1)"
+  api_url=""
+  anon_key=""
+  service_role_key=""
+
+  parse_status_output "${start_output}"
 
   if [ -z "${api_url}" ]; then
     api_url="http://127.0.0.1:${api_port}"
@@ -177,8 +288,7 @@ extract_values_from_output() {
     cov_hit "setup_parse_key_fallback"
     log_warn "Could not parse keys from start output. Falling back to 'supabase status'."
     status_output="$(cd "${REPO_ROOT}" && supabase status 2>&1 || true)"
-    anon_key="${anon_key:-$(printf "%s\n" "${status_output}" | sed -n 's/^ *anon key: *//p' | tail -n1)}"
-    service_role_key="${service_role_key:-$(printf "%s\n" "${status_output}" | sed -n 's/^ *service_role key: *//p' | tail -n1)}"
+    parse_status_output "${status_output}"
   else
     cov_hit "setup_parse_key_from_start"
   fi
@@ -241,8 +351,42 @@ print_summary() {
 }
 
 main() {
-  configure_target_dir "${1:-}"
+  local app_name=""
+  local do_reset=0
+  local target_dir_arg=""
+
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --app)
+        app_name="${2:-}"
+        shift 2
+        ;;
+      --reset)
+        do_reset=1
+        shift
+        ;;
+      *)
+        target_dir_arg="$1"
+        shift
+        ;;
+    esac
+  done
+
+  configure_target_dir "${target_dir_arg}"
   check_prerequisites || return 1
+
+  if [ -n "${app_name}" ]; then
+    set_project_id "${app_name}" || return 1
+  else
+    project_id="$(read_project_id_from_config)"
+    log_info "App: ${project_id} (from config.toml)"
+  fi
+
+  if [ "${do_reset}" -eq 1 ]; then
+    reset_volume
+  fi
+
+  check_existing_volume
   select_port_block || return 1
   write_ports_file
   apply_ports_to_config "${api_port}" "${db_port}" "${studio_port}" "${inbucket_port}"

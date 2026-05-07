@@ -71,16 +71,40 @@ check_supabase_cli() {
   return 0
 }
 
+get_project_id() {
+  local val
+  val="$(grep '^project_id' "${CONFIG_FILE}" 2>/dev/null | sed 's/project_id *= *"\(.*\)"/\1/' | tail -n1)"
+  printf "%s" "${val:-localSupabaseDB}"
+}
+
+force_remove_containers() {
+  local proj_id
+  proj_id="$(get_project_id)"
+  log_warn "Forcing removal of leftover Supabase containers for: ${proj_id}..."
+  local containers
+  containers="$(docker ps -aq --filter "name=${proj_id}" 2>/dev/null || true)"
+  if [ -n "${containers}" ]; then
+    # shellcheck disable=SC2086
+    docker rm -f ${containers} >/dev/null 2>&1 || true
+    cov_hit "stop_force_remove"
+    log_warn "Leftover containers removed."
+  else
+    cov_hit "stop_no_leftovers"
+  fi
+}
+
 stop_instance() {
-  if cd "${REPO_ROOT}" && supabase stop; then
+  if cd "${REPO_ROOT}" && supabase stop 2>&1; then
     cov_hit "stop_run_ok"
     log_info "Supabase stopped successfully."
+    force_remove_containers
     return 0
   fi
 
   cov_hit "stop_run_fail"
-  log_error "Failed to stop Supabase instance."
-  return 1
+  log_warn "supabase stop reported an error. Attempting forced container cleanup..."
+  force_remove_containers
+  return 0
 }
 
 main() {
