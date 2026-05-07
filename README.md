@@ -164,19 +164,7 @@ docker ps
 ```
 Wenn eine leere Tabelle erscheint (kein Fehler), läuft Docker.
 
-### Schritt 3 – `site_url` in der Konfiguration setzen
-
-Öffne `supabase/config.toml.template` und trage die URL deiner Next.js-App ein:
-
-```toml
-site_url = "http://localhost:3000"
-```
-
-Diese URL wird für Auth-Redirects verwendet (z.B. nach Login per E-Mail). Wenn deine Next.js-App auf Port 3001 läuft, trage entsprechend `http://localhost:3001` ein.
-
-> **Wichtig:** `supabase/config.toml` ist gitignoriert (enthält deinen App-spezifischen Namen). Konfigurationsänderungen die geteilt werden sollen immer in `supabase/config.toml.template` vornehmen.
-
-### Schritt 4 – Supabase starten
+### Schritt 3 – Supabase starten
 
 ```powershell
 .\scripts\setup.ps1 -App meine-app
@@ -186,7 +174,9 @@ Ersetze `meine-app` durch den Namen deines Projekts, z.B. `shop`, `blog`, `schuf
 
 **Beim ersten Start** werden Docker-Images heruntergeladen (~1–2 GB). Das kann einige Minuten dauern. Danach startet Supabase sehr schnell.
 
-### Schritt 5 – Variablen in die Next.js-App kopieren
+> `site_url` ist standardmäßig auf `http://localhost:3000` gesetzt – das ist der Port deiner lokalen Next.js-App. Wenn du einen anderen Port nutzt, ändere es in `supabase/config.toml.template` und committe die Änderung.
+
+### Schritt 4 – Variablen in die Next.js-App kopieren
 
 Das Skript erstellt automatisch eine `.env.local`-Datei im Repository-Ordner. Kopiere sie in den Ordner deiner Next.js-App:
 
@@ -664,10 +654,12 @@ docker info
 
 ### Schritt 3 – `site_url` setzen
 
-In `supabase/config.toml.template` die URL deiner Next.js App eintragen (Zeile `site_url`) und committen:
+In `supabase/config.toml.template` ist `site_url` bereits auf `http://localhost:3000` voreingestellt – keinen manuellen Schritt erforderlich.
+
+Nur wenn deine App auf einem anderen Port läuft, trage es dort ein und committe die Änderung:
 
 ```toml
-site_url = "http://localhost:3000"
+site_url = "http://localhost:3001"
 ```
 
 > `supabase/config.toml` ist gitignoriert. Gemeinsam genutzte Einstellungen gehören in `config.toml.template`.
