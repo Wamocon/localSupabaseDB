@@ -56,8 +56,11 @@ if (-not $volumes) {
     }
 }
 
-# --- config.toml auf Standard-project_id zuruecksetzen ---
-(Get-Content $ConfigFile) -replace '^project_id = ".*"', 'project_id = "localSupabaseDB"' | Set-Content $ConfigFile
+# --- config.toml loeschen (wird beim naechsten Start frisch aus Template kopiert) ---
+if (Test-Path $ConfigFile) {
+    Remove-Item $ConfigFile
+    Write-Info "config.toml geloescht (wird beim naechsten Start aus Template neu erstellt)."
+}
 
 Write-Host ""
 Write-Info "Bereinigung abgeschlossen. Alle Supabase-Daten wurden geloescht."

@@ -8,3 +8,8 @@
 # Supabase local state
 .branches
 supabase/.temp
+
+# Supabase app-specific config (generated from config.toml.template by setup scripts).
+# Contains the project_id (app name) which is developer-specific and must not be committed.
+# Edit supabase/config.toml.template for shared config changes instead.
+supabase/config.toml

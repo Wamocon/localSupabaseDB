@@ -4,6 +4,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 CONFIG_FILE="${REPO_ROOT}/supabase/config.toml"
+TEMPLATE_FILE="${REPO_ROOT}/supabase/config.toml.template"
 
 # Lokale Supabase-CLI (aus npm install) bevorzugen, um Konflikte mit globalem Install zu vermeiden
 if [[ -d "${REPO_ROOT}/node_modules/.bin" ]]; then
@@ -378,6 +379,17 @@ main() {
   done
 
   configure_target_dir "${target_dir_arg}"
+
+  # config.toml aus Template erstellen wenn nicht vorhanden (nach git clone / purge)
+  if [[ ! -f "${CONFIG_FILE}" ]]; then
+    if [[ ! -f "${TEMPLATE_FILE}" ]]; then
+      log_error "Weder config.toml noch config.toml.template gefunden. Repository beschaedigt?"
+      return 1
+    fi
+    cp "${TEMPLATE_FILE}" "${CONFIG_FILE}"
+    log_info "config.toml aus Template erstellt."
+  fi
+
   check_prerequisites || return 1
 
   if [ -n "${app_name}" ]; then

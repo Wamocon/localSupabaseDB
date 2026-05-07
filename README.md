@@ -94,7 +94,8 @@ npx supabase --version
 
 Wenn du `setup.ps1 -App meine-app` ausführst, passiert folgendes:
 
-1. Der Name `meine-app` wird als `project_id` in `supabase/config.toml` gesetzt.
+1. Das Skript prüft ob `supabase/config.toml` existiert. Falls nicht (z.B. direkt nach `git clone`), wird sie automatisch aus `supabase/config.toml.template` kopiert.
+2. Der Name `meine-app` wird als `project_id` in `supabase/config.toml` gesetzt.
 2. Supabase benennt alle Docker-Container und Volumes nach diesem Namen:
    - Container: `supabase_db_meine-app`, `supabase_api_meine-app`, ...
    - Volume: `supabase_db_meine-app` ← **hier liegen deine Daten**
@@ -165,13 +166,15 @@ Wenn eine leere Tabelle erscheint (kein Fehler), läuft Docker.
 
 ### Schritt 3 – `site_url` in der Konfiguration setzen
 
-Öffne `supabase/config.toml` und trage die URL deiner Next.js-App ein:
+Öffne `supabase/config.toml.template` und trage die URL deiner Next.js-App ein:
 
 ```toml
 site_url = "http://localhost:3000"
 ```
 
 Diese URL wird für Auth-Redirects verwendet (z.B. nach Login per E-Mail). Wenn deine Next.js-App auf Port 3001 läuft, trage entsprechend `http://localhost:3001` ein.
+
+> **Wichtig:** `supabase/config.toml` ist gitignoriert (enthält deinen App-spezifischen Namen). Konfigurationsänderungen die geteilt werden sollen immer in `supabase/config.toml.template` vornehmen.
 
 ### Schritt 4 – Supabase starten
 
@@ -304,7 +307,7 @@ Was `purge.ps1` macht:
 2. Stoppt alle laufenden Supabase-Container
 3. Entfernt alle verbleibenden Container
 4. Löscht **alle** `supabase_*`-Volumes (alle App-Daten)
-5. Setzt `config.toml` auf den Standardnamen zurück
+5. Löscht `supabase/config.toml` (wird beim nächsten Start automatisch neu aus dem Template erstellt)
 
 > **Achtung:** Dieser Befehl löscht die Daten **aller** Apps auf einmal. Danach sind alle Volumes weg.
 
@@ -661,11 +664,13 @@ docker info
 
 ### Schritt 3 – `site_url` setzen
 
-In `supabase/config.toml` die URL deiner Next.js App eintragen (Zeile `site_url`):
+In `supabase/config.toml.template` die URL deiner Next.js App eintragen (Zeile `site_url`) und committen:
 
 ```toml
 site_url = "http://localhost:3000"
 ```
+
+> `supabase/config.toml` ist gitignoriert. Gemeinsam genutzte Einstellungen gehören in `config.toml.template`.
 
 ### Schritt 4 – Setup mit App-Namen starten
 
@@ -770,6 +775,7 @@ Das Skript:
 ## Was `setup.sh` automatisch macht
 
 - prüft Docker und Supabase CLI
+- erstellt `supabase/config.toml` aus `config.toml.template` wenn sie nicht existiert (z.B. nach `git clone` oder `purge`)
 - setzt `project_id` in `supabase/config.toml` auf den gewählten App-Namen
 - prüft ob bereits ein Docker-Volume für diese App existiert und meldet Resuming oder Fresh Start
 - sucht automatisch einen freien Port-Block
