@@ -4,6 +4,10 @@ setup_port_lsof_busy
 setup_port_lsof_free
 setup_port_nc_busy
 setup_port_nc_free
+setup_port_netstat_busy
+setup_port_netstat_free
+setup_port_ss_busy
+setup_port_ss_free
 setup_port_no_tool
 setup_patch_config
 setup_prereq_docker_fail
@@ -15,6 +19,10 @@ setup_port_block_selected
 setup_port_block_fail
 setup_port_block_ok
 setup_ports_file_written
+setup_project_id_set
+setup_volume_exists
+setup_volume_new
+setup_volume_reset
 setup_parse_api_fallback
 setup_parse_api_from_start
 setup_parse_key_fallback
