@@ -1,0 +1,10 @@
+# Local environment files
+.env.local
+.env.local.backup
+
+# Local port allocation cache
+.ports
+
+# Supabase local state
+.branches
+supabase/.temp
