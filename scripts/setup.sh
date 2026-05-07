@@ -5,11 +5,6 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 CONFIG_FILE="${REPO_ROOT}/supabase/config.toml"
 TEMPLATE_FILE="${REPO_ROOT}/supabase/config.toml.template"
-
-# Lokale Supabase-CLI (aus npm install) bevorzugen, um Konflikte mit globalem Install zu vermeiden
-if [[ -d "${REPO_ROOT}/node_modules/.bin" ]]; then
-  export PATH="${REPO_ROOT}/node_modules/.bin:${PATH}"
-fi
 PORTS_FILE="${REPO_ROOT}/.ports"
 TARGET_DIR="${PWD}"
 TARGET_ENV_FILE="${TARGET_DIR}/.env.local"
@@ -379,6 +374,11 @@ main() {
   done
 
   configure_target_dir "${target_dir_arg}"
+
+  # Lokale Supabase-CLI (aus npm install) bevorzugen – nur beim echten Start, nicht beim Sourcen
+  if [[ -d "${REPO_ROOT}/node_modules/.bin" ]]; then
+    export PATH="${REPO_ROOT}/node_modules/.bin:${PATH}"
+  fi
 
   # config.toml aus Template erstellen wenn nicht vorhanden (nach git clone / purge)
   if [[ ! -f "${CONFIG_FILE}" ]]; then

@@ -106,13 +106,20 @@ run_test_check_prerequisites_branches() {
 
   write_stub "${stubbin}/docker" 'exit 1'
   PATH="${stubbin}:${old_path}"
+  hash -r 2>/dev/null || true
   assert_failure "prereq docker fail" check_prerequisites
 
   write_stub "${stubbin}/docker" 'exit 0'
   rm -f "${stubbin}/supabase"
-  hash -r 2>/dev/null || true  # Bash-Command-Cache leeren damit kein system-supabase gecacht bleibt
+  # Minimales PATH: nur stubbin, damit weder node_modules/.bin noch
+  # system-supabase (auf ubuntu-latest vorinstalliert) gefunden werden.
+  # command -v supabase darf NICHT erfolgreich sein fuer diesen Test.
+  PATH="${stubbin}"
+  hash -r 2>/dev/null || true
   assert_failure "prereq supabase missing" check_prerequisites
 
+  # Volles PATH wiederherstellen fuer folgende Tests (supabase stub vorhanden)
+  PATH="${stubbin}:${old_path}"
   write_stub "${stubbin}/supabase" 'if [ "$1" = "--version" ]; then exit 1; fi; exit 0'
   hash -r 2>/dev/null || true
   assert_failure "prereq supabase broken" check_prerequisites
