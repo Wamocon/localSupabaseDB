@@ -110,12 +110,15 @@ run_test_check_prerequisites_branches() {
 
   write_stub "${stubbin}/docker" 'exit 0'
   rm -f "${stubbin}/supabase"
+  hash -r 2>/dev/null || true  # Bash-Command-Cache leeren damit kein system-supabase gecacht bleibt
   assert_failure "prereq supabase missing" check_prerequisites
 
   write_stub "${stubbin}/supabase" 'if [ "$1" = "--version" ]; then exit 1; fi; exit 0'
+  hash -r 2>/dev/null || true
   assert_failure "prereq supabase broken" check_prerequisites
 
   write_stub "${stubbin}/supabase" 'if [ "$1" = "--version" ]; then echo "2.0.0"; exit 0; fi; exit 0'
+  hash -r 2>/dev/null || true
   assert_success "prereq success" check_prerequisites
 
   PATH="${old_path}"
