@@ -13,14 +13,36 @@ function Write-Info($msg) { Write-Host $msg -ForegroundColor Green }
 function Write-Warn($msg) { Write-Host $msg -ForegroundColor Yellow }
 function Write-Err($msg)  { Write-Host $msg -ForegroundColor Red; exit 1 }
 
+$SupabaseCmd = $null
+function Invoke-Supabase {
+    param(
+        [Parameter(ValueFromRemainingArguments = $true)]
+        [string[]]$Args
+    )
+    if (-not $SupabaseCmd) {
+        Write-Err "Supabase CLI nicht initialisiert."
+    }
+    & $SupabaseCmd @Args
+}
+
 # --- Prerequisites ---
 Write-Info "Checking prerequisites..."
 
 $dockerPs = docker ps 2>&1
 if ($LASTEXITCODE -ne 0) { Write-Err "Docker laeuft nicht. Bitte Docker Desktop starten." }
 
-if (-not (Get-Command supabase -ErrorAction SilentlyContinue)) {
-    Write-Err "Supabase CLI nicht gefunden. Siehe: https://supabase.com/docs/guides/cli"
+if (Get-Command supabase -ErrorAction SilentlyContinue) {
+    $SupabaseCmd = "supabase"
+} else {
+    $localSupabase = Join-Path $RepoRoot "node_modules\.bin\supabase.cmd"
+    if (Test-Path $localSupabase) {
+        $SupabaseCmd = $localSupabase
+        Write-Info "Nutze lokale Supabase CLI aus node_modules."
+    }
+}
+
+if (-not $SupabaseCmd) {
+    Write-Err "Supabase CLI nicht gefunden. Installiere sie global oder lokal mit 'npm install'. Siehe: https://supabase.com/docs/guides/cli"
 }
 
 # --- App-Name / project_id ---
@@ -43,7 +65,7 @@ $volExists = (docker volume ls --format "{{.Name}}" 2>$null) -contains $volName
 
 if ($Reset) {
     Write-Warn "Daten werden zurueckgesetzt fuer '$App'..."
-    supabase stop --no-backup 2>&1 | Out-Null
+    Invoke-Supabase stop --no-backup 2>&1 | Out-Null
     docker volume rm $volName 2>&1 | Out-Null
     Write-Info "Zurueckgesetzt."
     $volExists = $false
@@ -57,10 +79,10 @@ if ($volExists) {
 
 # --- Supabase starten ---
 Write-Info "Starte Supabase..."
-$startOutput = supabase start 2>&1
+$startOutput = Invoke-Supabase start 2>&1
 if ($LASTEXITCODE -ne 0) {
     Write-Warn "supabase start meldet Fehler. Pruefe Status..."
-    $startOutput = supabase status 2>&1
+    $startOutput = Invoke-Supabase status 2>&1
 }
 
 # --- Keys parsen ---
@@ -93,7 +115,7 @@ $serviceKey = Get-FirstMatch $secretLine '(sb_secret_\S+|eyJ\S+)'
 # Fallback: supabase status separat abfragen
 if (-not $anonKey -or -not $serviceKey) {
     Write-Warn "Keys nicht gefunden. Lese supabase status..."
-    $statusOut = supabase status 2>&1
+    $statusOut = Invoke-Supabase status 2>&1
     if (-not $urlLine)    { $urlLine    = Get-LineContaining $statusOut 'Project URL|API URL' }
     if (-not $apiUrl)     { $apiUrl     = Get-FirstMatch $urlLine '(https?://[\d\.]+:\d+)' }
     if (-not $anonKey)    { $anonKey    = Get-FirstMatch (Get-LineContaining $statusOut 'Publishable|anon key') '(sb_publishable_\S+|eyJ\S+)' }
