@@ -1,0 +1,9 @@
+[book]
+authors = ["Wamocon"]
+language = "de"
+multilingual = false
+src = "src"
+title = "localSupabaseDB Dokumentation"
+
+[output.html]
+default-theme = "navy"
