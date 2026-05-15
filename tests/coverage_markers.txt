@@ -36,6 +36,13 @@ setup_env_no_backup
 setup_env_written
 setup_summary
 setup_main_ok
+setup_parse_table_api
+setup_parse_table_anon
+setup_parse_table_service
+setup_config_from_template
+setup_config_template_missing
+setup_main_no_app
+setup_main_reset
 stop_patch_config
 stop_ports_missing
 stop_ports_present
@@ -44,6 +51,10 @@ stop_supabase_ok
 stop_run_ok
 stop_run_fail
 stop_main_ok
+stop_force_remove
+stop_no_leftovers
+stop_get_project_id
+stop_main_fail
 status_patch_config
 status_ports_present
 status_ports_missing
@@ -54,3 +65,4 @@ status_output_not_running
 status_output_running
 status_print
 status_main_ok
+status_main_fail

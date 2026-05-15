@@ -79,6 +79,7 @@ check_supabase_cli() {
 get_project_id() {
   local val
   val="$(grep '^project_id' "${CONFIG_FILE}" 2>/dev/null | sed 's/project_id *= *"\(.*\)"/\1/' | tail -n1)"
+  cov_hit "stop_get_project_id"
   printf "%s" "${val:-localSupabaseDB}"
 }
 
@@ -115,7 +116,10 @@ stop_instance() {
 main() {
   sync_ports_if_available
   check_supabase_cli || return 1
-  stop_instance || return 1
+  if ! stop_instance; then
+    cov_hit "stop_main_fail"
+    return 1
+  fi
   cov_hit "stop_main_ok"
 }
 

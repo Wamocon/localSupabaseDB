@@ -245,7 +245,10 @@ parse_status_output() {
   # New CLI format (table): "│ Project URL    │ http://... │"
   if [ -z "${api_url}" ]; then
     val="$(printf "%s\n" "${output}" | grep -i 'Project URL' | sed 's/^[^│]*│[^│]*│[[:space:]]*//' | sed 's/[[:space:]]*│.*$//' | tail -n1)"
-    [ -n "${val}" ] && api_url="${val}"
+    if [ -n "${val}" ]; then
+      api_url="${val}"
+      cov_hit "setup_parse_table_api"
+    fi
   fi
 
   # Old CLI format: "  anon key: eyJh..."
@@ -255,7 +258,10 @@ parse_status_output() {
   # New CLI format: "│ Publishable │ sb_publishable_... │"
   if [ -z "${anon_key}" ]; then
     val="$(printf "%s\n" "${output}" | grep -i 'Publishable' | sed 's/^[^│]*│[^│]*│[[:space:]]*//' | sed 's/[[:space:]]*│.*$//' | tail -n1)"
-    [ -n "${val}" ] && anon_key="${val}"
+    if [ -n "${val}" ]; then
+      anon_key="${val}"
+      cov_hit "setup_parse_table_anon"
+    fi
   fi
 
   # Old CLI format: "  service_role key: eyJh..."
@@ -265,7 +271,10 @@ parse_status_output() {
   # New CLI format: "│ Secret      │ sb_secret_... │"
   if [ -z "${service_role_key}" ]; then
     val="$(printf "%s\n" "${output}" | grep -i '│[[:space:]]*Secret' | sed 's/^[^│]*│[^│]*│[[:space:]]*//' | sed 's/[[:space:]]*│.*$//' | tail -n1)"
-    [ -n "${val}" ] && service_role_key="${val}"
+    if [ -n "${val}" ]; then
+      service_role_key="${val}"
+      cov_hit "setup_parse_table_service"
+    fi
   fi
 }
 
@@ -383,10 +392,12 @@ main() {
   # config.toml aus Template erstellen wenn nicht vorhanden (nach git clone / purge)
   if [[ ! -f "${CONFIG_FILE}" ]]; then
     if [[ ! -f "${TEMPLATE_FILE}" ]]; then
+      cov_hit "setup_config_template_missing"
       log_error "Weder config.toml noch config.toml.template gefunden. Repository beschaedigt?"
       return 1
     fi
     cp "${TEMPLATE_FILE}" "${CONFIG_FILE}"
+    cov_hit "setup_config_from_template"
     log_info "config.toml aus Template erstellt."
   fi
 
@@ -396,10 +407,12 @@ main() {
     set_project_id "${app_name}" || return 1
   else
     project_id="$(read_project_id_from_config)"
+    cov_hit "setup_main_no_app"
     log_info "App: ${project_id} (from config.toml)"
   fi
 
   if [ "${do_reset}" -eq 1 ]; then
+    cov_hit "setup_main_reset"
     reset_volume
   fi
 

@@ -15,6 +15,7 @@ bash -n "${REPO_ROOT}/scripts/status.sh"
 bash -n "${REPO_ROOT}/tests/test_setup.sh"
 bash -n "${REPO_ROOT}/tests/test_stop.sh"
 bash -n "${REPO_ROOT}/tests/test_status.sh"
+bash -n "${REPO_ROOT}/tests/test_config.sh"
 bash -n "${REPO_ROOT}/tests/run_all.sh"
 bash "${REPO_ROOT}/tests/run_all.sh"
 

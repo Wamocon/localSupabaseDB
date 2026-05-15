@@ -15,12 +15,30 @@ assert_eq() {
   fi
 }
 
+assert_not_eq() {
+  local unexpected="$1"
+  local actual="$2"
+  local msg="$3"
+  if [ "${unexpected}" = "${actual}" ]; then
+    fail "${msg}: value should not equal '${unexpected}'"
+  fi
+}
+
 assert_file_contains() {
   local file="$1"
   local needle="$2"
   local msg="$3"
   if ! grep -Fq "${needle}" "${file}"; then
     fail "${msg}: '${needle}' not found in ${file}"
+  fi
+}
+
+assert_file_not_contains() {
+  local file="$1"
+  local needle="$2"
+  local msg="$3"
+  if grep -Fq "${needle}" "${file}"; then
+    fail "${msg}: '${needle}' unexpectedly found in ${file}"
   fi
 }
 
@@ -37,6 +55,22 @@ assert_failure() {
   shift
   if "$@"; then
     fail "${msg}: command unexpectedly succeeded"
+  fi
+}
+
+assert_not_empty() {
+  local val="$1"
+  local msg="$2"
+  if [ -z "${val}" ]; then
+    fail "${msg}: value is empty but should not be"
+  fi
+}
+
+assert_empty() {
+  local val="$1"
+  local msg="$2"
+  if [ -n "${val}" ]; then
+    fail "${msg}: value should be empty but got '${val}'"
   fi
 }
 

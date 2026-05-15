@@ -29,6 +29,10 @@ port = 54323
 # Local email testing inbox UI and API.
 port = 54324
 
+[analytics]
+# Logflare analytics service port.
+port = 54327
+
 [auth]
 # URL deiner lokalen Next.js-App. Standard ist Port 3000.
 # Wenn du mehrere Apps gleichzeitig betreibst, hat jede ihr eigenes Repo
