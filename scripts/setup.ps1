@@ -43,7 +43,7 @@ function Invoke-Supabase {
 # --- Prerequisites ---
 Write-Info "Checking prerequisites..."
 
-$dockerPs = docker ps 2>&1
+$null = docker ps 2>&1
 if ($LASTEXITCODE -ne 0) { Write-Err "Docker laeuft nicht. Bitte Docker Desktop starten." }
 
 if (Get-Command supabase -ErrorAction SilentlyContinue) {
