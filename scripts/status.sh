@@ -99,7 +99,10 @@ main() {
   sync_ports_if_available
   check_supabase_cli || return 1
   fetch_status
-  validate_status_output || return 1
+  if ! validate_status_output; then
+    cov_hit "status_main_fail"
+    return 1
+  fi
   print_status
   cov_hit "status_main_ok"
 }

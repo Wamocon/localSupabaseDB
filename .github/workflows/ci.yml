@@ -1,21 +1,98 @@
-name: CI – Unittests & Validierung
+name: CI – Tests, Linting & 100% Coverage
 
 on:
   push:
-    branches: ["main"]
+    branches:
+      - main
   pull_request:
 
-jobs:
-  validate:
-    name: Syntaxchecks, Unittests & 100% Coverage
-    runs-on: ubuntu-latest
+permissions:
+  contents: read
 
+jobs:
+  # ── Job 1: ShellCheck für alle Bash-Skripte ──────────────────────────────────
+  shellcheck:
+    name: ShellCheck (Bash Syntax & Lint)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Repository auschecken
+        uses: actions/checkout@v4
+
+      - name: ShellCheck installieren
+        run: sudo apt-get install -y shellcheck
+
+      - name: ShellCheck auf alle .sh-Dateien ausführen
+        run: |
+          shellcheck --severity=error \
+            scripts/setup.sh \
+            scripts/stop.sh \
+            scripts/status.sh \
+            scripts/validate.sh \
+            tests/lib.sh \
+            tests/run_all.sh \
+            tests/check_coverage.sh \
+            tests/test_setup.sh \
+            tests/test_stop.sh \
+            tests/test_status.sh \
+            tests/test_config.sh
+
+  # ── Job 2: PowerShell-Syntaxprüfung + PSScriptAnalyzer ───────────────────────
+  powershell-lint:
+    name: PowerShell Syntax & PSScriptAnalyzer
+    runs-on: ubuntu-latest
+    steps:
+      - name: Repository auschecken
+        uses: actions/checkout@v4
+
+      - name: PowerShell Syntaxprüfung (Parser)
+        shell: pwsh
+        run: |
+          $failed = $false
+          Get-ChildItem -Path scripts -Filter *.ps1 | ForEach-Object {
+            $parseErrors = $null
+            $null = [System.Management.Automation.Language.Parser]::ParseFile(
+              $_.FullName, [ref]$null, [ref]$parseErrors
+            )
+            if ($parseErrors) {
+              Write-Error "Syntaxfehler in $($_.Name):`n$($parseErrors | Out-String)"
+              $failed = $true
+            } else {
+              Write-Host "OK: $($_.Name)"
+            }
+          }
+          if ($failed) { exit 1 }
+
+      - name: PSScriptAnalyzer installieren
+        shell: pwsh
+        run: Install-Module PSScriptAnalyzer -Force -Scope CurrentUser -Repository PSGallery
+
+      - name: PSScriptAnalyzer ausführen
+        shell: pwsh
+        run: |
+          $results = Invoke-ScriptAnalyzer -Path scripts -Recurse -Settings scripts/PSScriptAnalyzerSettings.psd1
+          if ($results) {
+            $results | Format-Table -AutoSize
+            Write-Error "PSScriptAnalyzer: $($results.Count) Problem(e) gefunden."
+            exit 1
+          }
+          Write-Host "PSScriptAnalyzer: Keine Probleme gefunden."
+
+  # ── Job 3: Unit-Tests + 100% Coverage ────────────────────────────────────────
+  unittests:
+    name: Unit Tests & 100% Coverage
+    runs-on: ubuntu-latest
+    needs: [shellcheck]
     steps:
       - name: Repository auschecken
         uses: actions/checkout@v4
 
       - name: Skripte ausführbar machen
-        run: chmod +x scripts/validate.sh tests/run_all.sh tests/check_coverage.sh tests/lib.sh tests/test_setup.sh tests/test_stop.sh tests/test_status.sh
+        run: |
+          chmod +x \
+            scripts/validate.sh scripts/setup.sh scripts/stop.sh scripts/status.sh \
+            tests/lib.sh tests/run_all.sh tests/check_coverage.sh \
+            tests/test_setup.sh tests/test_stop.sh tests/test_status.sh tests/test_config.sh
 
-      - name: Syntaxchecks, Unittests und Coverage-Prüfung ausführen
+      - name: Syntaxchecks, Unit-Tests und Coverage-Prüfung ausführen
         run: ./scripts/validate.sh
+

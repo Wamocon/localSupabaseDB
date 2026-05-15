@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-REPO_ROOT="/home/runner/work/localSupabaseDB/localSupabaseDB"
+# REPO_ROOT: In CI über $GITHUB_WORKSPACE gesetzt, lokal relativ zur Skript-Position ermittelt.
+REPO_ROOT="${GITHUB_WORKSPACE:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 # shellcheck disable=SC1091
 source "${REPO_ROOT}/tests/lib.sh"
 # shellcheck disable=SC1091
@@ -244,6 +245,7 @@ run_test_project_id_and_volume() {
 
 run_test_write_env_and_main() {
   local tmp stubbin old_path cfg
+  local saved_repo="${REPO_ROOT}" saved_cfg="${CONFIG_FILE}" saved_ports="${PORTS_FILE}"
   tmp="$(new_temp_dir)"
   stubbin="${tmp}/bin"
   make_stub_bin "${stubbin}"
@@ -283,6 +285,10 @@ run_test_write_env_and_main() {
   assert_file_contains "${cfg}" 'project_id = "testapp"' "project_id set by --app"
 
   PATH="${old_path}"
+  REPO_ROOT="${saved_repo}"
+  CONFIG_FILE="${saved_cfg}"
+  PORTS_FILE="${saved_ports}"
+  unset -f is_port_free
   pass "setup: write_env and main"
 }
 
@@ -295,5 +301,223 @@ run_test_extract_values_branches
 run_test_start_supabase_branches
 run_test_project_id_and_volume
 run_test_write_env_and_main
+
+# ── Neue ausführliche Tests ────────────────────────────────────────────────────
+
+run_test_parse_status_table_format() {
+  # Testet das neue Supabase-CLI-Tabellenformat (Unicode-Box-Zeichen │)
+  api_url=""
+  anon_key=""
+  service_role_key=""
+  api_port=54321
+
+  local table_out
+  table_out=$'│ Project URL    │ http://127.0.0.1:54321              │\n│ Publishable    │ sb_publishable_tabletestkey         │\n│ Secret         │ sb_secret_tabletestkey              │'
+
+  parse_status_output "${table_out}"
+
+  assert_eq "http://127.0.0.1:54321"       "${api_url}"          "table format: api_url"
+  assert_eq "sb_publishable_tabletestkey"  "${anon_key}"         "table format: anon_key"
+  assert_eq "sb_secret_tabletestkey"       "${service_role_key}" "table format: service_role_key"
+  pass "setup: parse_status_output table format"
+}
+
+run_test_write_ports_explicit() {
+  # write_ports_file explizit testen – alle 4 Felder korrekt geschrieben
+  local tmp
+  tmp="$(new_temp_dir)"
+  local saved_ports="${PORTS_FILE}"
+  PORTS_FILE="${tmp}/.ports"
+  api_port=55601; db_port=55602; studio_port=55603; inbucket_port=55604
+
+  write_ports_file
+
+  assert_file_contains "${PORTS_FILE}" "API_PORT=55601"      "ports: api"
+  assert_file_contains "${PORTS_FILE}" "DB_PORT=55602"       "ports: db"
+  assert_file_contains "${PORTS_FILE}" "STUDIO_PORT=55603"   "ports: studio"
+  assert_file_contains "${PORTS_FILE}" "INBUCKET_PORT=55604" "ports: inbucket"
+  PORTS_FILE="${saved_ports}"
+  pass "setup: write_ports_file explicit"
+}
+
+run_test_read_project_id_fallback() {
+  # Wenn config.toml kein project_id enthält → Fallback "localSupabaseDB"
+  local tmp cfg saved_cfg
+  tmp="$(new_temp_dir)"
+  cfg="${tmp}/empty.toml"
+  printf '[api]\nport = 54321\n' > "${cfg}"
+  saved_cfg="${CONFIG_FILE}"
+  CONFIG_FILE="${cfg}"
+
+  local pid
+  pid="$(read_project_id_from_config)"
+  assert_eq "localSupabaseDB" "${pid}" "read_project_id fallback"
+
+  CONFIG_FILE="${saved_cfg}"
+  pass "setup: read_project_id_from_config fallback"
+}
+
+run_test_parse_status_old_and_new_combined() {
+  # Gemischter Output: altes Format für URL, neues Format für Keys → beide Pfade geprüft
+  api_url=""
+  anon_key=""
+  service_role_key=""
+  api_port=54321
+
+  local mixed_out
+  mixed_out=$'  API URL: http://127.0.0.1:54321\n│ Publishable    │ sb_publishable_mixedtest            │\n│ Secret         │ sb_secret_mixedtest                 │'
+
+  parse_status_output "${mixed_out}"
+  assert_eq "http://127.0.0.1:54321" "${api_url}"           "mixed: api_url (old format)"
+  assert_eq "sb_publishable_mixedtest" "${anon_key}"         "mixed: anon_key (table format)"
+  assert_eq "sb_secret_mixedtest"     "${service_role_key}"  "mixed: service_role_key (table format)"
+  pass "setup: parse_status_output mixed format"
+}
+
+run_test_main_config_from_template() {
+  # main() soll config.toml aus Template erstellen wenn sie fehlt
+  local tmp stubbin old_path
+  local saved_repo="${REPO_ROOT}" saved_cfg="${CONFIG_FILE}" saved_tmpl="${TEMPLATE_FILE}" saved_ports="${PORTS_FILE}"
+  tmp="$(new_temp_dir)"
+  stubbin="${tmp}/bin"
+  make_stub_bin "${stubbin}"
+  old_path="${PATH}"
+
+  local supa_dir="${tmp}/supabase"
+  mkdir -p "${supa_dir}"
+  cp "${saved_repo}/supabase/config.toml.template" "${supa_dir}/config.toml.template"
+
+  CONFIG_FILE="${supa_dir}/config.toml"        # existiert NICHT
+  TEMPLATE_FILE="${supa_dir}/config.toml.template"
+  PORTS_FILE="${tmp}/.ports"
+  REPO_ROOT="${tmp}"
+
+  write_stub "${stubbin}/docker" 'printf ""; exit 0'
+  write_stub "${stubbin}/supabase" 'case "$1" in
+  "--version") echo "2.0.0"; exit 0 ;;
+  "start") printf "API URL: http://127.0.0.1:54321\nanon key: tplkey\nservice_role key: tplsvc\n"; exit 0 ;;
+  "status") printf "anon key: tplkey\nservice_role key: tplsvc\n"; exit 0 ;;
+  *) exit 0 ;;
+esac'
+  is_port_free() { return 0; }
+  configure_target_dir "${tmp}"
+  PATH="${stubbin}:${old_path}"
+
+  assert_success "main erstellt config.toml aus Template" main "${tmp}"
+  [ -f "${CONFIG_FILE}" ] || fail "config.toml wurde nicht aus Template erstellt"
+
+  REPO_ROOT="${saved_repo}"; CONFIG_FILE="${saved_cfg}"; TEMPLATE_FILE="${saved_tmpl}"; PORTS_FILE="${saved_ports}"
+  PATH="${old_path}"
+  unset -f is_port_free
+  pass "setup: config_from_template"
+}
+
+run_test_main_template_missing() {
+  # main() muss scheitern wenn weder config.toml noch Template vorhanden
+  local tmp stubbin old_path
+  local saved_repo="${REPO_ROOT}" saved_cfg="${CONFIG_FILE}" saved_tmpl="${TEMPLATE_FILE}" saved_ports="${PORTS_FILE}"
+  tmp="$(new_temp_dir)"
+  stubbin="${tmp}/bin"
+  make_stub_bin "${stubbin}"
+  old_path="${PATH}"
+
+  local supa_dir="${tmp}/supabase"
+  mkdir -p "${supa_dir}"
+  # Beide Dateien fehlen absichtlich
+
+  CONFIG_FILE="${supa_dir}/config.toml"
+  TEMPLATE_FILE="${supa_dir}/config.toml.template"
+  PORTS_FILE="${tmp}/.ports"
+  REPO_ROOT="${tmp}"
+
+  write_stub "${stubbin}/docker" 'printf ""; exit 0'
+  write_stub "${stubbin}/supabase" 'if [ "$1" = "--version" ]; then echo "2.0.0"; fi; exit 0'
+  PATH="${stubbin}:${old_path}"
+
+  assert_failure "main schlägt fehl ohne Template" main "${tmp}"
+
+  REPO_ROOT="${saved_repo}"; CONFIG_FILE="${saved_cfg}"; TEMPLATE_FILE="${saved_tmpl}"; PORTS_FILE="${saved_ports}"
+  PATH="${old_path}"
+  pass "setup: config_template_missing"
+}
+
+run_test_main_reset() {
+  # main() mit --reset-Flag: reset_volume soll aufgerufen werden
+  local tmp stubbin old_path
+  local saved_repo="${REPO_ROOT}" saved_cfg="${CONFIG_FILE}" saved_tmpl="${TEMPLATE_FILE}" saved_ports="${PORTS_FILE}"
+  tmp="$(new_temp_dir)"
+  stubbin="${tmp}/bin"
+  make_stub_bin "${stubbin}"
+  old_path="${PATH}"
+
+  local supa_dir="${tmp}/supabase"
+  mkdir -p "${supa_dir}"
+  cp "${saved_repo}/supabase/config.toml.template" "${supa_dir}/config.toml"
+  cp "${saved_repo}/supabase/config.toml.template" "${supa_dir}/config.toml.template"
+
+  CONFIG_FILE="${supa_dir}/config.toml"
+  TEMPLATE_FILE="${supa_dir}/config.toml.template"
+  PORTS_FILE="${tmp}/.ports"
+  REPO_ROOT="${tmp}"
+
+  write_stub "${stubbin}/docker" 'printf ""; exit 0'
+  write_stub "${stubbin}/supabase" 'case "$1" in
+  "--version") echo "2.0.0"; exit 0 ;;
+  "start") printf "API URL: http://127.0.0.1:54321\nanon key: resetkey\nservice_role key: resetsvc\n"; exit 0 ;;
+  "stop") exit 0 ;;
+  "status") printf "anon key: resetkey\nservice_role key: resetsvc\n"; exit 0 ;;
+  *) exit 0 ;;
+esac'
+  is_port_free() { return 0; }
+  configure_target_dir "${tmp}"
+  PATH="${stubbin}:${old_path}"
+
+  assert_success "main mit --reset" main --app resetapp --reset "${tmp}"
+
+  REPO_ROOT="${saved_repo}"; CONFIG_FILE="${saved_cfg}"; TEMPLATE_FILE="${saved_tmpl}"; PORTS_FILE="${saved_ports}"
+  PATH="${old_path}"
+  unset -f is_port_free
+  pass "setup: main_reset"
+}
+
+run_test_print_summary() {
+  # print_summary gibt alle wichtigen Ausgaben aus
+  api_url="http://127.0.0.1:54321"
+  studio_port=54323
+  inbucket_port=54324
+
+  local out
+  out="$(print_summary 2>&1)"
+  printf "%s" "${out}" | grep -q "54321"  || fail "print_summary: API URL fehlt"
+  printf "%s" "${out}" | grep -q "54323"  || fail "print_summary: Studio-Port fehlt"
+  printf "%s" "${out}" | grep -q "54324"  || fail "print_summary: Inbucket-Port fehlt"
+  pass "setup: print_summary Ausgabe"
+}
+
+run_test_set_project_id_max_length() {
+  # set_project_id kürzt auf 40 Zeichen
+  local tmp cfg saved_cfg
+  tmp="$(new_temp_dir)"
+  cfg="${tmp}/config.toml"
+  cp "${REPO_ROOT}/supabase/config.toml" "${cfg}"
+  saved_cfg="${CONFIG_FILE}"
+  CONFIG_FILE="${cfg}"
+
+  assert_success "set_project_id sehr langer Name" set_project_id "abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz"
+  [ "${#project_id}" -le 40 ] || fail "project_id ist länger als 40 Zeichen: ${#project_id}"
+
+  CONFIG_FILE="${saved_cfg}"
+  pass "setup: set_project_id max length"
+}
+
+run_test_parse_status_table_format
+run_test_write_ports_explicit
+run_test_read_project_id_fallback
+run_test_parse_status_old_and_new_combined
+run_test_main_config_from_template
+run_test_main_template_missing
+run_test_main_reset
+run_test_print_summary
+run_test_set_project_id_max_length
 
 pass "setup tests complete"

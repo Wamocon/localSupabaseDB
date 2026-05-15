@@ -1,3 +1,7 @@
+param(
+    [string]$App = ""
+)
+
 $RepoRoot   = Split-Path -Parent $PSScriptRoot
 $ConfigFile = Join-Path $RepoRoot "supabase\config.toml"
 
@@ -8,9 +12,17 @@ if (Test-Path $localBin) { $env:PATH = "$localBin;$env:PATH" }
 function Write-Info($msg) { Write-Host $msg -ForegroundColor Green }
 function Write-Warn($msg) { Write-Host $msg -ForegroundColor Yellow }
 
-# Aktuellen App-Namen aus config.toml lesen
-$match     = Select-String -Path $ConfigFile -Pattern '^project_id = "(.*)"'
-$projectId = $match.Matches[0].Groups[1].Value
+# App-Namen bestimmen: Parameter hat Vorrang vor config.toml
+if ($App -ne "") {
+    $sanitized = $App.ToLower() -replace '[^a-z0-9-]','-' -replace '-+','-' -replace '^-|-$',''
+    if ($sanitized -eq "") { Write-Host "Ungueltiger App-Name: '$App'" -ForegroundColor Red; exit 1 }
+    $projectId = $sanitized
+    # project_id in config.toml auf die zu stoppende App setzen
+    (Get-Content $ConfigFile) -replace '^project_id = ".*"', "project_id = `"$projectId`"" | Set-Content $ConfigFile
+} else {
+    $match     = Select-String -Path $ConfigFile -Pattern '^project_id = "(.*)"'
+    $projectId = $match.Matches[0].Groups[1].Value
+}
 
 Write-Info "Stopping Supabase ($projectId)..."
 supabase stop 2>&1 | ForEach-Object { Write-Host $_ }
