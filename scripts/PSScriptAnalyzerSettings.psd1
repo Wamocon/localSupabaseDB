@@ -6,6 +6,9 @@
         'PSAvoidUsingWriteHost',
 
         # BOM-Kodierung wird separat sichergestellt (UTF-8 ohne BOM fuer PS 5.1-Kompatibilitaet).
-        'PSUseBOMForUnicodeEncodedFile'
+        'PSUseBOMForUnicodeEncodedFile',
+
+        # Leere catch-Bloecke sind hier intentionell (optionale JSON-Dateien werden ignoriert).
+        'PSAvoidUsingEmptyCatchBlock'
     )
 }
