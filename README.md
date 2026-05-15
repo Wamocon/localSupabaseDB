@@ -508,7 +508,7 @@ Wenn deine App produktionsreif ist, wechselst du von der lokalen Instanz auf Sup
 
 ## Unittests & CI
 
-Dieses Repository enthält automatisierte Tests für alle Shell-Skripte. Sie werden bei jedem Push auf GitHub automatisch ausgeführt (GitHub Actions CI).
+Dieses Repository enthält automatisierte Tests für alle Shell-Skripte. Sie werden automatisch ausgeführt (GitHub Actions CI) – bei jedem Push auf `main` sowie bei Pull Requests.
 
 ```powershell
 # Alle Tests + Coverage lokal ausführen (Git Bash)
