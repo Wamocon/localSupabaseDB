@@ -64,7 +64,7 @@ jobs:
       - name: PSScriptAnalyzer ausführen
         shell: pwsh
         run: |
-          $results = Invoke-ScriptAnalyzer -Path scripts -Recurse -Severity Warning,Error
+          $results = Invoke-ScriptAnalyzer -Path scripts -Recurse -Settings scripts/PSScriptAnalyzerSettings.psd1
           if ($results) {
             $results | Format-Table -AutoSize
             Write-Error "PSScriptAnalyzer: $($results.Count) Problem(e) gefunden."

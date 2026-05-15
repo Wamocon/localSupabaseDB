@@ -4,7 +4,6 @@ param(
 
 $RepoRoot   = Split-Path -Parent $PSScriptRoot
 $ConfigFile = Join-Path $RepoRoot "supabase\config.toml"
-$PortsFile  = Join-Path $RepoRoot ".ports"
 
 # Lokale Supabase-CLI bevorzugen
 $localBin = Join-Path $RepoRoot "node_modules\.bin"

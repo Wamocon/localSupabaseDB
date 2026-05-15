@@ -101,7 +101,7 @@ if (Test-Path $PortsFile) {
                 analytics = $p.Value.analytics
             }
         }
-    } catch {}
+    } catch { <# JSON ungueltig oder leer - leere Map verwenden #> }
 }
 
 if ($portsMap.ContainsKey($App)) {
