@@ -1,0 +1,938 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>localSupabaseDB – Dokumentation | WAMOCON</title>
+    <style>
+      /* ── Reset & Base ───────────────────────────────────────── */
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+      :root {
+        --primary:      #10b981;
+        --primary-dark: #059669;
+        --primary-glow: rgba(16,185,129,0.18);
+        --amber:        #f59e0b;
+        --blue:         #60a5fa;
+        --red:          #f87171;
+        --purple:       #c084fc;
+        --bg-page:      #030d09;
+        --bg-card:      rgba(10, 26, 18, 0.92);
+        --bg-code:      #071a10;
+        --border:       rgba(255,255,255,0.07);
+        --text:         #e2f0ea;
+        --text-muted:   #7ba896;
+        --text-dim:     rgba(255,255,255,0.3);
+        --wmc-grad:     linear-gradient(135deg, #030d09 0%, #071a10 40%, #0d2e1b 75%, #e2f0ea 100%);
+      }
+
+      html { scroll-behavior: smooth; font-size: 15px; }
+
+      body {
+        font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+        background: var(--bg-page);
+        color: var(--text);
+        line-height: 1.65;
+      }
+
+      /* ── Print ─────────────────────────────────────────────── */
+      @media print {
+        body { background: #fff; color: #111; font-size: 11pt; }
+        .no-print, nav, #toc-sidebar { display: none !important; }
+        .page-header { background: var(--primary-dark) !important; -webkit-print-color-adjust: exact; }
+        a { color: inherit; text-decoration: none; }
+        .card { border: 1px solid #ccc; background: #fff !important; color: #111 !important; box-shadow: none; }
+        table { page-break-inside: avoid; }
+        h2, h3 { page-break-after: avoid; }
+      }
+
+      /* ── Page Header ──────────────────────────────────────── */
+      .page-header {
+        background: var(--wmc-grad);
+        border-bottom: 2px solid var(--primary);
+        box-shadow: 0 2px 32px rgba(16,185,129,0.15);
+        padding: 0 2rem;
+        height: 64px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        position: sticky;
+        top: 0;
+        z-index: 100;
+      }
+      .page-header .brand { display: flex; align-items: center; gap: 12px; text-decoration: none; }
+      .logo-mark {
+        width: 42px; height: 42px; border-radius: 12px;
+        background: linear-gradient(135deg, #10b981, #059669);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 18px; font-weight: 900; color: #fff;
+        box-shadow: 0 3px 14px rgba(16,185,129,0.45);
+        flex-shrink: 0;
+      }
+      .brand-name { color: #fff; font-weight: 700; font-size: 1rem; line-height: 1.2; }
+      .brand-sub  { color: rgba(255,255,255,0.45); font-size: 0.65rem; letter-spacing: 0.06em; }
+      .header-meta { color: rgba(255,255,255,0.4); font-size: 0.7rem; text-align: right; }
+      .header-meta strong { color: rgba(255,255,255,0.7); }
+
+      /* ── Layout ──────────────────────────────────────────── */
+      .layout {
+        display: grid;
+        grid-template-columns: 260px 1fr;
+        min-height: calc(100vh - 64px);
+        max-width: 1320px;
+        margin: 0 auto;
+      }
+
+      /* ── Sidebar / TOC ──────────────────────────────────── */
+      #toc-sidebar {
+        position: sticky;
+        top: 64px;
+        height: calc(100vh - 64px);
+        overflow-y: auto;
+        padding: 1.5rem 0 2rem;
+        border-right: 1px solid var(--border);
+        background: rgba(3,13,9,0.6);
+        scrollbar-width: thin;
+        scrollbar-color: var(--primary-dark) transparent;
+      }
+      #toc-sidebar::-webkit-scrollbar { width: 4px; }
+      #toc-sidebar::-webkit-scrollbar-track { background: transparent; }
+      #toc-sidebar::-webkit-scrollbar-thumb { background: var(--primary-dark); border-radius: 2px; }
+
+      .toc-title {
+        font-size: 0.6rem; font-weight: 800; letter-spacing: 0.14em;
+        color: rgba(255,255,255,0.2); text-transform: uppercase;
+        padding: 0 1.4rem 0.5rem; margin-bottom: 0.25rem;
+      }
+      .toc-link {
+        display: block; padding: 0.32rem 1.4rem;
+        color: var(--text-muted); text-decoration: none;
+        font-size: 0.78rem; border-left: 2px solid transparent;
+        transition: all 0.15s; line-height: 1.4;
+      }
+      .toc-link:hover { color: #fff; border-left-color: var(--primary); background: var(--primary-glow); }
+      .toc-link.l1 { font-weight: 700; color: rgba(255,255,255,0.7); font-size: 0.8rem; margin-top: 0.6rem; }
+      .toc-link.l2 { padding-left: 2.2rem; }
+      .toc-link.active { color: #fff; border-left-color: var(--primary); background: var(--primary-glow); }
+      .toc-divider { height: 1px; background: var(--border); margin: 0.6rem 1.4rem; }
+
+      /* ── Main Content ─────────────────────────────────────── */
+      main { padding: 2.5rem 3.5rem 5rem; max-width: 980px; }
+
+      /* ── Cover ──────────────────────────────────────────── */
+      .cover {
+        border: 1px solid rgba(16,185,129,0.3);
+        border-radius: 20px;
+        background: linear-gradient(160deg, rgba(5,25,15,0.85) 0%, rgba(3,13,9,0.97) 100%);
+        padding: 3.5rem;
+        margin-bottom: 3.5rem;
+        position: relative;
+        overflow: hidden;
+      }
+      .cover::before {
+        content: '';
+        position: absolute; top: 0; right: 0;
+        width: 360px; height: 360px;
+        background: radial-gradient(circle, rgba(16,185,129,0.1) 0%, transparent 70%);
+        pointer-events: none;
+      }
+      .doc-type {
+        font-size: 0.65rem; font-weight: 800; letter-spacing: 0.18em;
+        text-transform: uppercase; color: var(--primary);
+        margin-bottom: 0.8rem;
+      }
+      .cover h1 { font-size: 2.6rem; font-weight: 950; color: #fff; line-height: 1.12; margin-bottom: 0.5rem; }
+      .cover-sub { font-size: 1.1rem; color: rgba(255,255,255,0.48); margin-bottom: 2.5rem; }
+      .cover-meta {
+        display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+        gap: 1.1rem;
+      }
+      .meta-label { font-size: 0.62rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(255,255,255,0.25); margin-bottom: 0.2rem; }
+      .meta-value { font-size: 0.9rem; color: rgba(255,255,255,0.82); font-weight: 600; }
+
+      /* ── Headings ─────────────────────────────────────────── */
+      h2 {
+        font-size: 1.55rem; font-weight: 900; color: #fff;
+        margin: 3.5rem 0 1.1rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 2px solid rgba(16,185,129,0.3);
+        display: flex; align-items: center; gap: 0.65rem;
+      }
+      h2 .ch-num { color: var(--primary); font-size: 1rem; font-weight: 600; min-width: 2.2rem; }
+      h3 { font-size: 1.1rem; font-weight: 700; color: rgba(255,255,255,0.88); margin: 2rem 0 0.75rem; }
+      h4 { font-size: 0.88rem; font-weight: 700; color: var(--text-muted); margin: 1.25rem 0 0.5rem; text-transform: uppercase; letter-spacing: 0.06em; }
+
+      /* ── Paragraphs & Lists ─────────────────────────────── */
+      p  { margin-bottom: 0.85rem; color: rgba(255,255,255,0.73); }
+      ul, ol { padding-left: 1.4rem; margin-bottom: 0.85rem; }
+      li { margin-bottom: 0.3rem; color: rgba(255,255,255,0.73); }
+      li::marker { color: var(--primary); }
+
+      /* ── Cards ──────────────────────────────────────────── */
+      .card {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 1.25rem 1.4rem;
+        margin-bottom: 1rem;
+      }
+      .card-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 0.75rem;
+        margin-bottom: 1.5rem;
+      }
+      .kpi {
+        background: var(--bg-card); border: 1px solid var(--border);
+        border-radius: 10px; padding: 1rem 1.2rem; text-align: center;
+      }
+      .kpi-val  { font-size: 1.8rem; font-weight: 900; line-height: 1; margin-bottom: 0.3rem; }
+      .kpi-lab  { font-size: 0.68rem; color: var(--text-dim); font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; }
+
+      /* ── Tables ─────────────────────────────────────────── */
+      .table-wrap { overflow-x: auto; margin: 1rem 0 1.4rem; border-radius: 10px; border: 1px solid var(--border); }
+      table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+      thead tr { background: rgba(16,185,129,0.1); }
+      thead th { padding: 0.65rem 1rem; text-align: left; font-size: 0.68rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(255,255,255,0.48); border-bottom: 1px solid rgba(16,185,129,0.2); }
+      tbody tr { border-bottom: 1px solid var(--border); transition: background 0.1s; }
+      tbody tr:last-child { border-bottom: none; }
+      tbody tr:hover { background: rgba(16,185,129,0.04); }
+      tbody td { padding: 0.6rem 1rem; color: rgba(255,255,255,0.73); vertical-align: top; }
+      tbody td:first-child { font-weight: 600; color: rgba(255,255,255,0.9); font-family: 'Cascadia Code','Fira Code','Consolas',monospace; font-size: 0.78rem; }
+
+      /* ── Badges ─────────────────────────────────────────── */
+      .badge {
+        display: inline-block; padding: 0.2rem 0.55rem;
+        border-radius: 20px; font-size: 0.68rem; font-weight: 700;
+        letter-spacing: 0.04em;
+      }
+      .badge-green  { background: rgba(16,185,129,0.15); color: #34d399; border: 1px solid rgba(16,185,129,0.3); }
+      .badge-amber  { background: rgba(245,158,11,0.15); color: #fbbf24; border: 1px solid rgba(245,158,11,0.3); }
+      .badge-blue   { background: rgba(96,165,250,0.15); color: #93c5fd; border: 1px solid rgba(96,165,250,0.3); }
+      .badge-red    { background: rgba(248,113,113,0.15); color: #fca5a5; border: 1px solid rgba(248,113,113,0.3); }
+      .badge-gray   { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.42); border: 1px solid rgba(255,255,255,0.1); }
+
+      /* ── Info Box ────────────────────────────────────────── */
+      .info-box {
+        border-radius: 10px; padding: 1rem 1.25rem;
+        margin-bottom: 1rem; border-left: 3px solid;
+      }
+      .info-box.green  { background: rgba(16,185,129,0.08); border-color: var(--primary); }
+      .info-box.amber  { background: rgba(245,158,11,0.08); border-color: var(--amber); }
+      .info-box.blue   { background: rgba(96,165,250,0.08); border-color: var(--blue); }
+      .info-box.red    { background: rgba(248,113,113,0.08); border-color: var(--red); }
+      .info-box-title { font-size: 0.72rem; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 0.4rem; }
+      .info-box.green  .info-box-title { color: var(--primary); }
+      .info-box.amber  .info-box-title { color: var(--amber); }
+      .info-box.blue   .info-box-title { color: var(--blue); }
+      .info-box.red    .info-box-title { color: var(--red); }
+      .info-box p { margin-bottom: 0; font-size: 0.87rem; }
+
+      /* ── Code ──────────────────────────────────────────── */
+      code {
+        font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+        font-size: 0.8em;
+        background: rgba(16,185,129,0.1);
+        color: #6ee7b7;
+        padding: 0.1em 0.38em;
+        border-radius: 4px;
+      }
+      pre {
+        background: var(--bg-code);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 1rem 1.25rem;
+        overflow-x: auto;
+        margin-bottom: 1rem;
+        font-size: 0.8rem;
+        line-height: 1.55;
+      }
+      pre code { background: none; color: #a7f3d0; padding: 0; font-size: 1em; }
+      .comment { color: #4a7c61; }
+      .cmd-ps  { color: #86efac; }
+      .cmd-sh  { color: #6ee7b7; }
+      .param   { color: #fbbf24; }
+
+      /* ── Step List ───────────────────────────────────────── */
+      .step-list { list-style: none; padding: 0; counter-reset: steps; }
+      .step-list li {
+        counter-increment: steps;
+        display: flex; gap: 1rem; align-items: flex-start;
+        padding: 0.75rem 0; border-bottom: 1px solid var(--border);
+      }
+      .step-list li:last-child { border-bottom: none; }
+      .step-list li::before {
+        content: counter(steps);
+        min-width: 26px; height: 26px;
+        background: rgba(16,185,129,0.15); border: 1px solid rgba(16,185,129,0.35);
+        border-radius: 50%; display: flex; align-items: center; justify-content: center;
+        font-size: 0.72rem; font-weight: 800; color: var(--primary);
+        flex-shrink: 0; margin-top: 0.05rem;
+      }
+
+      /* ── Feature Grid ─────────────────────────────────────── */
+      .feat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 0.65rem; margin: 1rem 0 1.4rem; }
+      .feat-item {
+        background: var(--bg-card); border: 1px solid var(--border);
+        border-radius: 10px; padding: 0.75rem 0.9rem;
+      }
+      .feat-icon { font-size: 1.2rem; margin-bottom: 0.3rem; }
+      .feat-name { font-size: 0.82rem; font-weight: 700; color: rgba(255,255,255,0.85); }
+      .feat-desc { font-size: 0.72rem; color: var(--text-muted); margin-top: 0.15rem; }
+
+      /* ── Footer ─────────────────────────────────────────── */
+      .page-footer {
+        background: rgba(3,13,9,0.8);
+        border-top: 1px solid var(--border);
+        padding: 1.5rem 2rem;
+        text-align: center;
+        color: var(--text-dim);
+        font-size: 0.72rem;
+      }
+      .page-footer a { color: var(--text-muted); text-decoration: none; margin: 0 0.4rem; }
+      .page-footer a:hover { color: var(--primary); }
+
+      /* ── Responsive ──────────────────────────────────────── */
+      @media (max-width: 920px) {
+        .layout { grid-template-columns: 1fr; }
+        #toc-sidebar { display: none; }
+        main { padding: 1.5rem 1.25rem 3rem; }
+      }
+    </style>
+  </head>
+  <body>
+
+    <!-- ── PAGE HEADER ─────────────────────────────────────────── -->
+    <header class="page-header">
+      <a class="brand" href="#">
+        <div class="logo-mark">🗄️</div>
+        <div>
+          <div class="brand-name">localSupabaseDB</div>
+          <div class="brand-sub">Lokale Supabase-Entwicklungsumgebung · WAMOCON</div>
+        </div>
+      </a>
+      <div class="header-meta">
+        <strong>Entwicklerdokumentation</strong><br>
+        PostgreSQL 17 · Supabase CLI · Mai 2026
+      </div>
+    </header>
+
+    <!-- ── MAIN LAYOUT ─────────────────────────────────────────── -->
+    <div class="layout">
+
+      <!-- ── SIDEBAR TOC ──────────────────────────────────────── -->
+      <nav id="toc-sidebar" aria-label="Inhaltsverzeichnis">
+        <div class="toc-title">Inhalt</div>
+
+        <a class="toc-link l1" href="#einfuehrung">Einführung</a>
+
+        <a class="toc-link l1" href="#schnellstart">1&nbsp; Schnellstart</a>
+
+        <a class="toc-link l1" href="#voraussetzungen">2&nbsp; Voraussetzungen</a>
+
+        <a class="toc-link l1" href="#konzept">3&nbsp; Konzept</a>
+        <a class="toc-link l2" href="#konzept-isolation">App-Isolation</a>
+        <a class="toc-link l2" href="#konzept-ports">Port-Verwaltung</a>
+        <a class="toc-link l2" href="#konzept-volumes">Docker-Volumes</a>
+
+        <a class="toc-link l1" href="#erstes-setup">4&nbsp; Erstes Setup</a>
+        <a class="toc-link l2" href="#setup-klonen">Repository klonen</a>
+        <a class="toc-link l2" href="#setup-starten">App starten</a>
+        <a class="toc-link l2" href="#setup-env">env.local konfigurieren</a>
+
+        <a class="toc-link l1" href="#starten-stoppen">5&nbsp; Starten &amp; Stoppen</a>
+
+        <a class="toc-link l1" href="#apps-wechseln">6&nbsp; Zwischen Apps wechseln</a>
+
+        <a class="toc-link l1" href="#reset">7&nbsp; App-Daten zurücksetzen</a>
+
+        <a class="toc-link l1" href="#purge">8&nbsp; Alles löschen (Purge)</a>
+
+        <a class="toc-link l1" href="#migrations">9&nbsp; Migrations</a>
+
+        <a class="toc-link l1" href="#befehle">10&nbsp; Alle Befehle</a>
+
+        <a class="toc-link l1" href="#cloud">11&nbsp; Wechsel zu Supabase Cloud</a>
+
+        <a class="toc-link l1" href="#tests">12&nbsp; Unittests &amp; CI</a>
+
+        <a class="toc-link l1" href="#troubleshooting">13&nbsp; Troubleshooting</a>
+        <a class="toc-link l2" href="#ts-docker">Docker-Probleme</a>
+        <a class="toc-link l2" href="#ts-ports">Port-Konflikte</a>
+        <a class="toc-link l2" href="#ts-pgversion">PG-Versions-Konflikt</a>
+      </nav>
+
+      <!-- ── MAIN ─────────────────────────────────────────────── -->
+      <main>
+
+        <!-- ── COVER ─────────────────────────────────────────── -->
+        <div class="cover">
+          <div class="doc-type">Entwicklerdokumentation · WAMOCON GmbH</div>
+          <h1>localSupabaseDB</h1>
+          <div class="cover-sub">Template-Repository für isolierte lokale Supabase-Entwicklungsumgebungen – eine Instanz pro Next.js-App.</div>
+          <div class="cover-meta">
+            <div><div class="meta-label">PostgreSQL</div><div class="meta-value">Version 17</div></div>
+            <div><div class="meta-label">Supabase CLI</div><div class="meta-value">≥ 2.78</div></div>
+            <div><div class="meta-label">Plattform</div><div class="meta-value">Windows · macOS · Linux</div></div>
+            <div><div class="meta-label">Status</div><div class="meta-value"><span class="badge badge-green">Aktiv</span></div></div>
+            <div><div class="meta-label">Herausgeber</div><div class="meta-value">WAMOCON GmbH</div></div>
+            <div><div class="meta-label">Datum</div><div class="meta-value">Mai 2026</div></div>
+          </div>
+        </div>
+
+        <!-- ════════════════════════════════════════════════════
+             EINFÜHRUNG
+        ════════════════════════════════════════════════════ -->
+        <section id="einfuehrung">
+          <h2><span class="ch-num">📖</span> Einführung</h2>
+
+          <p>
+            <strong>localSupabaseDB</strong> ist ein Template-Repository, das jeder WAMOCON Next.js-App als eigenständige, vollständig isolierte lokale Supabase-Instanz dient. Statt einer geteilten Cloud-Datenbank bekommt jede App ihren eigenen PostgreSQL-Container, Studio-Port und anon/service-Key – vollautomatisch verwaltet durch zwei PowerShell-Skripte.
+          </p>
+
+          <div class="card-grid">
+            <div class="kpi"><div class="kpi-val" style="color:var(--primary)">1</div><div class="kpi-lab">Befehl zum Start</div></div>
+            <div class="kpi"><div class="kpi-val" style="color:var(--blue)">17</div><div class="kpi-lab">PostgreSQL Version</div></div>
+            <div class="kpi"><div class="kpi-val" style="color:var(--amber)">5</div><div class="kpi-lab">Ports pro App</div></div>
+            <div class="kpi"><div class="kpi-val" style="color:var(--purple)">∞</div><div class="kpi-lab">Parallele Apps</div></div>
+          </div>
+
+          <div class="feat-grid">
+            <div class="feat-item"><div class="feat-icon">🔒</div><div class="feat-name">Vollständige Isolation</div><div class="feat-desc">Jede App hat eigene Volumes, Ports und Credentials</div></div>
+            <div class="feat-item"><div class="feat-icon">⚡</div><div class="feat-name">Ein-Befehl-Setup</div><div class="feat-desc"><code>setup.ps1 -App &lt;name&gt;</code> erledigt alles</div></div>
+            <div class="feat-item"><div class="feat-icon">🔄</div><div class="feat-name">Schnelles Wechseln</div><div class="feat-desc">Zwischen Apps umschalten ohne Datenverlust</div></div>
+            <div class="feat-item"><div class="feat-icon">🗄️</div><div class="feat-name">PostgreSQL 17</div><div class="feat-desc">Aktuelle Datenbankversion mit vollem Supabase-Stack</div></div>
+            <div class="feat-item"><div class="feat-icon">🧹</div><div class="feat-name">Sauberer Reset</div><div class="feat-desc">Daten löschen und frisch beginnen mit <code>-Reset</code></div></div>
+            <div class="feat-item"><div class="feat-icon">📋</div><div class="feat-name">.env.local-Automatik</div><div class="feat-desc">Keys werden automatisch in die App geschrieben</div></div>
+          </div>
+        </section>
+
+        <!-- ════════════════════════════════════════════════════
+             1. SCHNELLSTART
+        ════════════════════════════════════════════════════ -->
+        <section id="schnellstart">
+          <h2><span class="ch-num">1</span> Schnellstart</h2>
+
+          <p>Für alle, die sofort loslegen möchten – ohne die Details zu lesen:</p>
+
+          <ol class="step-list">
+            <li>
+              <div>
+                <strong>Repository als Supabase-Verzeichnis einer App klonen</strong><br>
+                <pre><code><span class="comment"># Klone das Repo als supabase/-Ordner in deine Next.js-App</span>
+git clone https://github.com/Wamocon/localSupabaseDB.git supabase
+cd deine-nextjs-app</code></pre>
+              </div>
+            </li>
+            <li>
+              <div>
+                <strong>Voraussetzungen sicherstellen</strong> – Docker Desktop läuft, Supabase CLI installiert<br>
+                <pre><code>supabase --version   <span class="comment"># ≥ 2.78</span>
+docker ps            <span class="comment"># Docker muss laufen</span></code></pre>
+              </div>
+            </li>
+            <li>
+              <div>
+                <strong>Erstmalig starten</strong>
+                <pre><code><span class="comment"># Windows (PowerShell)</span>
+<span class="cmd-ps">.\scripts\setup.ps1 -App meineapp</span>
+
+<span class="comment"># macOS / Linux</span>
+<span class="cmd-sh">./scripts/setup.sh --app meineapp</span></code></pre>
+              </div>
+            </li>
+            <li>
+              <div>
+                <strong>Fertig!</strong> Das Skript gibt alle URLs und Keys aus und schreibt <code>.env.local</code> automatisch.
+              </div>
+            </li>
+          </ol>
+
+          <div class="info-box green">
+            <div class="info-box-title">Ausgabe nach erfolgreichem Start</div>
+            <p>Du siehst drei Werte: <code>NEXT_PUBLIC_SUPABASE_URL</code>, <code>NEXT_PUBLIC_SUPABASE_ANON_KEY</code> und <code>SUPABASE_SERVICE_ROLE_KEY</code> – bereits in <code>.env.local</code> deiner Next.js-App eingetragen. Studio ist erreichbar unter <code>http://127.0.0.1:&lt;port&gt;</code>.</p>
+          </div>
+        </section>
+
+        <!-- ════════════════════════════════════════════════════
+             2. VORAUSSETZUNGEN
+        ════════════════════════════════════════════════════ -->
+        <section id="voraussetzungen">
+          <h2><span class="ch-num">2</span> Voraussetzungen</h2>
+
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Tool</th><th>Mindestversion</th><th>Installation</th></tr></thead>
+              <tbody>
+                <tr>
+                  <td>Docker Desktop</td>
+                  <td><span class="badge badge-green">aktuell</span></td>
+                  <td><a href="https://www.docker.com/products/docker-desktop/" style="color:var(--primary)">docker.com</a></td>
+                </tr>
+                <tr>
+                  <td>Supabase CLI</td>
+                  <td><span class="badge badge-green">≥ 2.78</span></td>
+                  <td><code>npm install supabase --save-dev</code></td>
+                </tr>
+                <tr>
+                  <td>Node.js</td>
+                  <td><span class="badge badge-blue">≥ 18</span></td>
+                  <td><a href="https://nodejs.org" style="color:var(--primary)">nodejs.org</a></td>
+                </tr>
+                <tr>
+                  <td>PowerShell</td>
+                  <td><span class="badge badge-gray">5.1 (Windows)</span></td>
+                  <td>In Windows vorinstalliert</td>
+                </tr>
+                <tr>
+                  <td>Bash</td>
+                  <td><span class="badge badge-gray">macOS / Linux</span></td>
+                  <td>In macOS / Linux vorinstalliert</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="info-box amber">
+            <div class="info-box-title">Docker muss laufen</div>
+            <p>Das Setup-Skript bricht sofort ab, wenn Docker Desktop nicht gestartet ist. Starte Docker Desktop, bevor du <code>setup.ps1</code> ausführst.</p>
+          </div>
+
+          <h3>Supabase CLI aktuell halten</h3>
+          <pre><code><span class="comment"># Update auf aktuelle Version</span>
+<span class="cmd-ps">npm update supabase --save-dev</span>
+
+<span class="comment"># Version prüfen</span>
+<span class="cmd-ps">supabase --version</span></code></pre>
+        </section>
+
+        <!-- ════════════════════════════════════════════════════
+             3. KONZEPT
+        ════════════════════════════════════════════════════ -->
+        <section id="konzept">
+          <h2><span class="ch-num">3</span> Konzept</h2>
+
+          <p>Jede Next.js-App bei WAMOCON kopiert dieses Repository als <code>supabase/</code>-Verzeichnis. Damit sind alle Supabase-Konfigurationen, Migrations und Seeds pro App eigenständig versioniert.</p>
+
+          <h3 id="konzept-isolation">App-Isolation</h3>
+          <p>Die Isolation wird über die <code>project_id</code> in der <code>config.toml</code> gesteuert. Das Setup-Skript setzt diese automatisch auf den gewählten App-Namen:</p>
+
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Resource</th><th>Namensschema</th><th>Beispiel (App: auktivo)</th></tr></thead>
+              <tbody>
+                <tr><td>Docker-Volume</td><td><code>supabase_db_&lt;app&gt;</code></td><td><code>supabase_db_auktivo</code></td></tr>
+                <tr><td>Container</td><td><code>supabase_&lt;service&gt;_&lt;app&gt;</code></td><td><code>supabase_db_auktivo</code></td></tr>
+                <tr><td>config.toml</td><td><code>project_id = "&lt;app&gt;"</code></td><td><code>project_id = "auktivo"</code></td></tr>
+                <tr><td>env.local</td><td>Im Root der Next.js-App</td><td><code>NEXT_PUBLIC_SUPABASE_URL=…</code></td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3 id="konzept-ports">Port-Verwaltung</h3>
+          <p>Ports werden automatisch pro App in der Datei <code>.ports</code> (JSON) gespeichert. So können mehrere Apps gleichzeitig laufen – jede auf ihrem eigenen Port-Block:</p>
+
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Service</th><th>Beschreibung</th><th>Standard (erste App)</th></tr></thead>
+              <tbody>
+                <tr><td>api</td><td>PostgREST / Kong Gateway</td><td>54321</td></tr>
+                <tr><td>db</td><td>PostgreSQL direkt</td><td>54322</td></tr>
+                <tr><td>studio</td><td>Supabase Studio UI</td><td>54323</td></tr>
+                <tr><td>inbucket</td><td>Lokaler E-Mail-Posteingang</td><td>54324</td></tr>
+                <tr><td>analytics</td><td>Logflare Analytics</td><td>54325</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3 id="konzept-volumes">Docker-Volumes &amp; Datenpersistenz</h3>
+          <p>PostgreSQL-Daten werden in einem benannten Docker-Volume gespeichert und überleben das Stoppen der Container. Ein <code>-Reset</code> löscht das Volume – alle Daten, Migrations und Seeds werden beim nächsten Start neu eingespielt.</p>
+
+          <div class="info-box blue">
+            <div class="info-box-title">Volume-Benennung</div>
+            <p>Das Volume heißt immer <code>supabase_db_&lt;appname&gt;</code>. Beim Wechsel der <code>project_id</code> ohne <code>-Reset</code> erkennt das Skript automatisch einen PostgreSQL-Versions-Konflikt und bricht mit einer hilfreichen Fehlermeldung ab.</p>
+          </div>
+        </section>
+
+        <!-- ════════════════════════════════════════════════════
+             4. ERSTES SETUP
+        ════════════════════════════════════════════════════ -->
+        <section id="erstes-setup">
+          <h2><span class="ch-num">4</span> Erstes Setup</h2>
+
+          <h3 id="setup-klonen">Repository in eine App einbinden</h3>
+          <p>Dieses Repository wird <em>nicht</em> als eigenständiges Projekt genutzt. Es wird als <code>supabase/</code>-Unterordner in jede Next.js-App geklont:</p>
+          <pre><code><span class="comment"># Im Wurzelverzeichnis deiner Next.js-App ausführen</span>
+git clone https://github.com/Wamocon/localSupabaseDB.git supabase
+
+<span class="comment"># Abhängigkeiten installieren (Supabase CLI lokal)</span>
+cd supabase
+npm install</code></pre>
+
+          <h3 id="setup-starten">Erstmalig starten</h3>
+          <pre><code><span class="comment"># Windows – PowerShell im supabase/-Verzeichnis</span>
+<span class="cmd-ps">.\scripts\setup.ps1 -App <span class="param">meineapp</span></span>
+
+<span class="comment"># macOS / Linux – im supabase/-Verzeichnis</span>
+<span class="cmd-sh">./scripts/setup.sh --app <span class="param">meineapp</span></span></code></pre>
+
+          <p>Das Skript führt automatisch folgende Schritte aus:</p>
+          <ul>
+            <li>Prüft, ob Docker und Supabase CLI verfügbar sind</li>
+            <li>Setzt die <code>project_id</code> in der <code>config.toml</code></li>
+            <li>Weist der App einen freien Port-Block zu (gespeichert in <code>.ports</code>)</li>
+            <li>Startet alle Supabase-Dienste (PostgreSQL 17, Studio, Auth, Storage, …)</li>
+            <li>Spielt Migrations aus <code>supabase/migrations/</code> ein</li>
+            <li>Führt <code>seed.sql</code> aus</li>
+            <li>Liest <code>anon key</code> und <code>service_role key</code> aus</li>
+            <li>Schreibt <code>.env.local</code> in das Wurzelverzeichnis der Next.js-App</li>
+          </ul>
+
+          <h3 id="setup-env">.env.local – generierte Variablen</h3>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Variable</th><th>Verwendung</th></tr></thead>
+              <tbody>
+                <tr><td>NEXT_PUBLIC_SUPABASE_URL</td><td>API-Endpunkt für Client-seitigen Zugriff</td></tr>
+                <tr><td>NEXT_PUBLIC_SUPABASE_ANON_KEY</td><td>Öffentlicher JWT-Schlüssel (mit RLS)</td></tr>
+                <tr><td>SUPABASE_SERVICE_ROLE_KEY</td><td>Admin-Schlüssel (nur serverseitig verwenden!)</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="info-box red">
+            <div class="info-box-title">Sicherheitshinweis</div>
+            <p>Den <code>SUPABASE_SERVICE_ROLE_KEY</code> niemals in Client-Code (<code>NEXT_PUBLIC_</code>) exponieren. Er umgeht Row Level Security und gewährt vollen Datenbankzugriff.</p>
+          </div>
+        </section>
+
+        <!-- ════════════════════════════════════════════════════
+             5. STARTEN & STOPPEN
+        ════════════════════════════════════════════════════ -->
+        <section id="starten-stoppen">
+          <h2><span class="ch-num">5</span> App starten &amp; stoppen</h2>
+
+          <h3>Starten</h3>
+          <pre><code><span class="comment"># App mit bekanntem Namen starten (Ports werden wiederverwendet)</span>
+<span class="cmd-ps">.\scripts\setup.ps1 -App <span class="param">auktivo</span></span>
+
+<span class="comment"># App aus bestehender config.toml starten (app-Name aus project_id)</span>
+<span class="cmd-ps">.\scripts\setup.ps1</span></code></pre>
+
+          <h3>Stoppen</h3>
+          <pre><code><span class="comment"># Supabase-Dienste stoppen (Daten bleiben im Volume erhalten)</span>
+<span class="cmd-ps">.\scripts\stop.ps1 -App <span class="param">auktivo</span></span></code></pre>
+
+          <div class="info-box green">
+            <div class="info-box-title">Daten bleiben erhalten</div>
+            <p>Das Stoppen löscht keine Daten. PostgreSQL-Daten liegen im Docker-Volume und stehen beim nächsten Start sofort wieder zur Verfügung.</p>
+          </div>
+
+          <h3>Automatische Retry-Logik</h3>
+          <p>Das Setup-Skript versucht beim Start bis zu 3 Mal, die Dienste hochzufahren:</p>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Versuch</th><th>Aktion</th></tr></thead>
+              <tbody>
+                <tr><td>1</td><td>Normaler <code>supabase start</code></td></tr>
+                <tr><td>2</td><td>Stop + Neustart</td></tr>
+                <tr><td>3</td><td>Docker force-cleanup + Neustart</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- ════════════════════════════════════════════════════
+             6. ZWISCHEN APPS WECHSELN
+        ════════════════════════════════════════════════════ -->
+        <section id="apps-wechseln">
+          <h2><span class="ch-num">6</span> Zwischen Apps wechseln</h2>
+
+          <p>Da jede App ihre eigenen Volumes und Ports hat, können mehrere Apps gleichzeitig laufen. Beim Wechsel einfach die andere App starten – laufende Apps werden nicht automatisch gestoppt.</p>
+
+          <pre><code><span class="comment"># App A stoppen</span>
+<span class="cmd-ps">.\scripts\stop.ps1 -App <span class="param">auktivo</span></span>
+
+<span class="comment"># App B starten</span>
+<span class="cmd-ps">.\scripts\setup.ps1 -App <span class="param">parzella</span></span></code></pre>
+
+          <div class="info-box blue">
+            <div class="info-box-title">Paralleler Betrieb möglich</div>
+            <p>Da jedem App-Namen ein eigener Port-Block zugewiesen wird, können Apps A und B gleichzeitig laufen. Die Port-Zuweisungen werden in <code>.ports</code> persistent gespeichert.</p>
+          </div>
+        </section>
+
+        <!-- ════════════════════════════════════════════════════
+             7. RESET
+        ════════════════════════════════════════════════════ -->
+        <section id="reset">
+          <h2><span class="ch-num">7</span> App-Daten zurücksetzen</h2>
+
+          <p>Der <code>-Reset</code>-Parameter löscht das Docker-Volume der App vollständig und startet mit einer frischen Datenbank – inklusive Migrations und Seed.</p>
+
+          <pre><code><span class="comment"># Alle Daten löschen und neu starten</span>
+<span class="cmd-ps">.\scripts\setup.ps1 -App <span class="param">auktivo</span> -Reset</span></code></pre>
+
+          <div class="info-box red">
+            <div class="info-box-title">Unwiderruflich</div>
+            <p>Ein Reset löscht das Docker-Volume <code>supabase_db_&lt;app&gt;</code> dauerhaft. Alle manuell eingefügten Daten gehen verloren. Migrations und Seed-Daten werden automatisch neu eingespielt.</p>
+          </div>
+
+          <h3>Wann ist ein Reset notwendig?</h3>
+          <ul>
+            <li>Nach einem Upgrade der PostgreSQL-Hauptversion (z. B. 15 → 17)</li>
+            <li>Bei einem korrupten Datenbankzustand</li>
+            <li>Um mit sauberem Datenbankzustand neu zu beginnen</li>
+            <li>Nach Änderungen an Migrationen, die einen sauberen Durchlauf erfordern</li>
+          </ul>
+        </section>
+
+        <!-- ════════════════════════════════════════════════════
+             8. PURGE
+        ════════════════════════════════════════════════════ -->
+        <section id="purge">
+          <h2><span class="ch-num">8</span> Alles löschen (Purge)</h2>
+
+          <p>Der Purge-Befehl entfernt <em>alle</em> Supabase-Ressourcen aller Apps auf diesem Rechner – Volumes, Container und Netzwerke.</p>
+
+          <pre><code><span class="comment"># Windows</span>
+<span class="cmd-ps">.\scripts\purge.ps1</span>
+
+<span class="comment"># macOS / Linux</span>
+<span class="cmd-sh">./scripts/purge.sh</span></code></pre>
+
+          <div class="info-box red">
+            <div class="info-box-title">Achtung – alle Apps betroffen</div>
+            <p>Purge löscht die Daten <strong>aller</strong> Supabase-Apps auf dem lokalen Rechner, nicht nur der aktuell aktiven. Nach einem Purge müssen alle Apps mit <code>setup.ps1 -App &lt;name&gt;</code> neu initialisiert werden.</p>
+          </div>
+        </section>
+
+        <!-- ════════════════════════════════════════════════════
+             9. MIGRATIONS
+        ════════════════════════════════════════════════════ -->
+        <section id="migrations">
+          <h2><span class="ch-num">9</span> Migrations</h2>
+
+          <p>Datenbankmigrationen liegen in <code>supabase/migrations/</code> als <code>.sql</code>-Dateien mit Timestamp-Präfix. Die Supabase CLI spielt sie beim Start automatisch in der richtigen Reihenfolge ein.</p>
+
+          <h3>Neue Migration erstellen</h3>
+          <pre><code><span class="comment"># Supabase CLI erstellt eine neue leere Migration</span>
+<span class="cmd-sh">supabase migration new <span class="param">create_users_table</span></span>
+
+<span class="comment"># Ergebnis: supabase/migrations/20260516120000_create_users_table.sql</span></code></pre>
+
+          <h3>Migration manuell anwenden</h3>
+          <pre><code><span class="comment"># Alle ausstehenden Migrations einspielen</span>
+<span class="cmd-sh">supabase db push</span>
+
+<span class="comment"># Status anzeigen</span>
+<span class="cmd-sh">supabase migration list</span></code></pre>
+
+          <h3>Seed-Daten</h3>
+          <p>Initiale Testdaten werden aus <code>supabase/seed.sql</code> automatisch beim ersten Start (oder nach einem Reset) eingespielt.</p>
+
+          <div class="info-box green">
+            <div class="info-box-title">Migrations werden beim Setup automatisch angewendet</div>
+            <p><code>setup.ps1</code> ruft intern <code>supabase start</code> auf, welches automatisch alle Migrations und den Seed einspielt – kein manueller Schritt erforderlich.</p>
+          </div>
+        </section>
+
+        <!-- ════════════════════════════════════════════════════
+             10. ALLE BEFEHLE
+        ════════════════════════════════════════════════════ -->
+        <section id="befehle">
+          <h2><span class="ch-num">10</span> Alle Befehle im Überblick</h2>
+
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Befehl (Windows)</th><th>Befehl (Mac/Linux)</th><th>Beschreibung</th></tr></thead>
+              <tbody>
+                <tr>
+                  <td>.\scripts\setup.ps1 -App &lt;name&gt;</td>
+                  <td>./scripts/setup.sh --app &lt;name&gt;</td>
+                  <td>App starten, .env.local generieren</td>
+                </tr>
+                <tr>
+                  <td>.\scripts\setup.ps1 -App &lt;name&gt; -Reset</td>
+                  <td>./scripts/setup.sh --app &lt;name&gt; --reset</td>
+                  <td>Daten löschen und neu starten</td>
+                </tr>
+                <tr>
+                  <td>.\scripts\stop.ps1 -App &lt;name&gt;</td>
+                  <td>./scripts/stop.sh --app &lt;name&gt;</td>
+                  <td>App stoppen (Daten bleiben)</td>
+                </tr>
+                <tr>
+                  <td>.\scripts\purge.ps1</td>
+                  <td>./scripts/purge.sh</td>
+                  <td>Alle Apps und Daten löschen</td>
+                </tr>
+                <tr>
+                  <td colspan="2"><code>supabase migration new &lt;name&gt;</code></td>
+                  <td>Neue Migration erstellen</td>
+                </tr>
+                <tr>
+                  <td colspan="2"><code>supabase db push</code></td>
+                  <td>Ausstehende Migrations einspielen</td>
+                </tr>
+                <tr>
+                  <td colspan="2"><code>supabase status</code></td>
+                  <td>Status und URLs der laufenden Instanz</td>
+                </tr>
+                <tr>
+                  <td colspan="2"><code>supabase db reset</code></td>
+                  <td>Datenbank zurücksetzen (nur Migrations &amp; Seed)</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- ════════════════════════════════════════════════════
+             11. WECHSEL ZU SUPABASE CLOUD
+        ════════════════════════════════════════════════════ -->
+        <section id="cloud">
+          <h2><span class="ch-num">11</span> Wechsel zu Supabase Cloud</h2>
+
+          <p>Wenn die App produktionsreif ist, kann auf Supabase Cloud umgestellt werden. Die Migrations aus <code>supabase/migrations/</code> können direkt auf ein Cloud-Projekt angewendet werden.</p>
+
+          <ol class="step-list">
+            <li><div><strong>Supabase Cloud Projekt erstellen</strong> unter <a href="https://app.supabase.com" style="color:var(--primary)">app.supabase.com</a></div></li>
+            <li>
+              <div>
+                <strong>Projekt verknüpfen</strong>
+                <pre><code>supabase link --project-ref <span class="param">dein-projekt-ref</span></code></pre>
+              </div>
+            </li>
+            <li>
+              <div>
+                <strong>Migrations hochladen</strong>
+                <pre><code>supabase db push</code></pre>
+              </div>
+            </li>
+            <li><div><strong>.env.local</strong> mit den Cloud-URLs und -Keys aus dem Supabase Dashboard aktualisieren</div></li>
+          </ol>
+
+          <div class="info-box blue">
+            <div class="info-box-title">Migrations sind Cloud-kompatibel</div>
+            <p>Da alle Migrations als Standard-SQL in <code>supabase/migrations/</code> liegen, können sie ohne Änderungen auf Cloud-Projekte angewendet werden.</p>
+          </div>
+        </section>
+
+        <!-- ════════════════════════════════════════════════════
+             12. TESTS & CI
+        ════════════════════════════════════════════════════ -->
+        <section id="tests">
+          <h2><span class="ch-num">12</span> Unittests &amp; CI</h2>
+
+          <p>Das Repository enthält Shell-basierte Integrationstests für die Skripte in <code>tests/</code>. Sie prüfen, ob Setup, Stop und Status korrekt funktionieren.</p>
+
+          <pre><code><span class="comment"># Alle Tests ausführen (macOS / Linux)</span>
+<span class="cmd-sh">./tests/run_all.sh</span>
+
+<span class="comment"># Einzelne Tests</span>
+<span class="cmd-sh">./tests/test_setup.sh
+./tests/test_stop.sh
+./tests/test_status.sh</span></code></pre>
+
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Testdatei</th><th>Prüft</th></tr></thead>
+              <tbody>
+                <tr><td>test_setup.sh</td><td>Setup-Skript: Start, .env.local-Generierung, Port-Zuweisung</td></tr>
+                <tr><td>test_stop.sh</td><td>Stop-Skript: Container-Stopp, Volume-Erhaltung</td></tr>
+                <tr><td>test_status.sh</td><td>Status-Abfrage über Supabase CLI</td></tr>
+                <tr><td>test_config.sh</td><td>config.toml-Parsing und Validierung</td></tr>
+                <tr><td>check_coverage.sh</td><td>Coverage-Prüfung anhand von coverage_markers.txt</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- ════════════════════════════════════════════════════
+             13. TROUBLESHOOTING
+        ════════════════════════════════════════════════════ -->
+        <section id="troubleshooting">
+          <h2><span class="ch-num">13</span> Troubleshooting</h2>
+
+          <h3 id="ts-docker">Docker läuft nicht</h3>
+          <div class="info-box red">
+            <div class="info-box-title">Fehlermeldung</div>
+            <p><code>Docker läuft nicht. Bitte Docker Desktop starten.</code></p>
+          </div>
+          <p><strong>Lösung:</strong> Docker Desktop starten und warten, bis der Daemon vollständig hochgefahren ist (<code>docker ps</code> sollte ohne Fehler antworten).</p>
+
+          <h3 id="ts-ports">Port bereits belegt</h3>
+          <div class="info-box amber">
+            <div class="info-box-title">Symptom</div>
+            <p>Ein Dienst startet nicht, weil der Port bereits durch eine andere Anwendung belegt ist.</p>
+          </div>
+          <p><strong>Lösung:</strong> Das Setup-Skript sucht automatisch nach freien Port-Blöcken. Falls trotzdem ein Konflikt auftritt, den Prozess auf dem belegten Port beenden:</p>
+          <pre><code><span class="comment"># Port 54321 freigeben (Windows)</span>
+<span class="cmd-ps">netstat -ano | findstr :54321
+taskkill /PID <span class="param">&lt;PID&gt;</span> /F</span></code></pre>
+
+          <h3 id="ts-pgversion">PostgreSQL-Versions-Konflikt</h3>
+          <div class="info-box red">
+            <div class="info-box-title">Fehlermeldung</div>
+            <p><code>FATALER FEHLER: PostgreSQL-Versions-Konflikt!</code><br>
+            Das Docker-Volume enthält eine andere PostgreSQL-Version als in <code>config.toml</code> konfiguriert (z. B. PG 15 vs. PG 17).</p>
+          </div>
+
+          <p><strong>Option 1: Daten sichern, dann Reset</strong></p>
+          <pre><code><span class="comment"># 1. Daten exportieren</span>
+docker run --rm -v supabase_db_<span class="param">auktivo</span>:/var/lib/postgresql/data \
+  -e POSTGRES_PASSWORD=postgres -p 5434:5432 -d \
+  --name pgexport postgres:15
+docker exec pgexport pg_dumpall -U postgres > backup.sql
+docker stop pgexport
+
+<span class="comment"># 2. Reset mit neuer PG-Version</span>
+<span class="cmd-ps">.\scripts\setup.ps1 -App <span class="param">auktivo</span> -Reset</span></code></pre>
+
+          <p><strong>Option 2: Reset ohne Backup (Daten werden gelöscht)</strong></p>
+          <pre><code><span class="cmd-ps">.\scripts\setup.ps1 -App <span class="param">auktivo</span> -Reset</span></code></pre>
+
+          <h3>Supabase CLI gibt non-zero Exit Code zurück, Dienste laufen aber</h3>
+          <p>Manche CLI-Versionen geben beim Start einen Fehlercode zurück, obwohl alle Dienste korrekt laufen. Das Setup-Skript erkennt diesen Fall automatisch und ignoriert den Exit Code, wenn die Dienste tatsächlich erreichbar sind.</p>
+
+          <h3>Keys können nicht ermittelt werden</h3>
+          <p>Nach dem Start versucht das Skript bis zu 3 Mal (mit 5 Sekunden Pause), die Keys abzurufen. Schlägt dies fehl:</p>
+          <pre><code><span class="comment"># Status manuell prüfen</span>
+<span class="cmd-sh">supabase status
+supabase status -o env</span></code></pre>
+        </section>
+
+      </main>
+    </div>
+
+    <!-- ── FOOTER ─────────────────────────────────────────────── -->
+    <footer class="page-footer">
+      <p>
+        <a href="https://github.com/Wamocon/localSupabaseDB" target="_blank">GitHub Repository</a>
+        ·
+        <a href="https://supabase.com/docs" target="_blank">Supabase Docs</a>
+        ·
+        <a href="https://www.wamocon.de" target="_blank">WAMOCON GmbH</a>
+      </p>
+      <p style="margin-top:0.5rem;">© 2026 WAMOCON GmbH · localSupabaseDB · PostgreSQL 17 · Supabase CLI</p>
+    </footer>
+
+    <!-- ── TOC ACTIVE SCROLL ──────────────────────────────────── -->
+    <script>
+      const links = document.querySelectorAll('.toc-link[href^="#"]');
+      const sections = [...links].map(l => document.querySelector(l.getAttribute('href'))).filter(Boolean);
+
+      function onScroll() {
+        let current = '';
+        sections.forEach(s => {
+          if (window.scrollY >= s.offsetTop - 100) current = '#' + s.id;
+        });
+        links.forEach(l => l.classList.toggle('active', l.getAttribute('href') === current));
+      }
+
+      window.addEventListener('scroll', onScroll, { passive: true });
+      onScroll();
+    </script>
+  </body>
+</html>
