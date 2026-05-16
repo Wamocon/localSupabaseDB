@@ -19,7 +19,7 @@ max_rows = 1000
 [db]
 # Local PostgreSQL port for direct DB access.
 port = 54322
-major_version = 15
+major_version = 17
 
 [studio]
 # Supabase Studio UI port.

@@ -1,9 +1,14 @@
-param(
+﻿param(
     [string]$App = "",
     [switch]$Reset
 )
 
 $ErrorActionPreference = "Continue"
+
+# UTF-8 Ausgabe erzwingen (verhindert kryptische Spinner-Zeichen der Supabase CLI)
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+$OutputEncoding           = [System.Text.Encoding]::UTF8
+
 $RepoRoot    = Split-Path -Parent $PSScriptRoot
 $ConfigFile  = Join-Path $RepoRoot "supabase\config.toml"
 $TemplateFile= Join-Path $RepoRoot "supabase\config.toml.template"
@@ -22,7 +27,7 @@ function Write-Err($msg)  { Write-Host $msg -ForegroundColor Red; exit 1 }
 # --- config.toml aus Template erstellen wenn nicht vorhanden ---
 if (-not (Test-Path $ConfigFile)) {
     if (-not (Test-Path $TemplateFile)) {
-        Write-Err "Weder config.toml noch config.toml.template gefunden. Repository beschaedigt?"
+        Write-Err "Weder config.toml noch config.toml.template gefunden. Repository beschädigt?"
     }
     Copy-Item $TemplateFile $ConfigFile
     Write-Info "config.toml aus Template erstellt."
@@ -41,7 +46,7 @@ function Invoke-Supabase {
 }
 
 # --- Prerequisites ---
-Write-Info "Checking prerequisites..."
+Write-Info "Überprüfe Voraussetzungen..."
 
 $null = docker ps 2>&1
 if ($LASTEXITCODE -ne 0) { Write-Err "Docker laeuft nicht. Bitte Docker Desktop starten." }
@@ -64,7 +69,7 @@ if (-not $SupabaseCmd) {
 if ($App -ne "") {
     $sanitized = $App.ToLower() -replace '[^a-z0-9-]','-' -replace '-+','-' -replace '^-|-$',''
     if ($sanitized.Length -gt 40) { $sanitized = $sanitized.Substring(0, 40) }
-    if ($sanitized -eq "") { Write-Err "Ungueltiger App-Name: '$App'" }
+    if ($sanitized -eq "") { Write-Err "Ungültiger App-Name: '$App'" }
     $App = $sanitized
     (Get-Content $ConfigFile) -replace '^project_id = ".*"', "project_id = `"$App`"" | Set-Content $ConfigFile
     Write-Info "App: $App"
@@ -154,17 +159,17 @@ $volName   = "supabase_db_$App"
 $volExists = (docker volume ls --format "{{.Name}}" 2>$null) -contains $volName
 
 if ($Reset) {
-    Write-Warn "Daten werden zurueckgesetzt fuer '$App'..."
+    Write-Warn "Daten werden zurückgesetzt für '$App'..."
     Invoke-Supabase stop --no-backup 2>&1 | Out-Null
     docker volume rm $volName 2>&1 | Out-Null
-    Write-Info "Zurueckgesetzt."
+    Write-Info "Zurückgesetzt."
     $volExists = $false
 }
 
 if ($volExists) {
-    Write-Info "Bestehende Daten gefunden fuer '$App' -> wird fortgesetzt."
+    Write-Info "Bestehende Daten gefunden für '$App' -> wird fortgesetzt."
 } else {
-    Write-Info "Keine Daten vorhanden fuer '$App' -> neue leere Instanz wird gestartet."
+    Write-Info "Keine Daten vorhanden für '$App' -> neue leere Instanz wird gestartet."
 }
 
 # --- Supabase starten ---
@@ -191,8 +196,8 @@ function Test-PostgresVolumeMismatch([string]$AppName) {
     if (-not $volPgVer) { return }
     $volPgVer = $volPgVer.Trim()
 
-    # Erwartete Version aus config.toml lesen (major_version = 15)
-    $expectedPgVer = "15"
+    # Erwartete Version aus config.toml lesen (major_version = 17)
+    $expectedPgVer = "17"
     $m = Select-String -Path $ConfigFile -Pattern 'major_version\s*=\s*(\d+)' -ErrorAction SilentlyContinue
     if ($m) { $expectedPgVer = $m.Matches[0].Groups[1].Value }
 
@@ -246,13 +251,13 @@ if ($LASTEXITCODE -ne 0) {
             Write-Warn "Versuch 3: Docker force-cleanup + Neustart..."
             $stuckContainers = @(docker ps -aq --filter "label=com.supabase.cli.project=$App" 2>$null)
             if ($stuckContainers.Count -gt 0) {
-                Write-Warn "Entferne $($stuckContainers.Count) haengende Container..."
+                Write-Warn "Entferne $($stuckContainers.Count) hängende Container..."
                 docker rm -f $stuckContainers 2>$null | Out-Null
                 Start-Sleep -Seconds 3
             }
             & $SupabaseCmd start 2>&1 | Out-Null
             if ($LASTEXITCODE -ne 0 -and -not (Test-SupabaseRunning)) {
-                Write-Err "Supabase konnte nicht gestartet werden. Bitte 'docker ps -a' und 'supabase status' manuell pruefen."
+                Write-Err "Supabase konnte nicht gestartet werden. Bitte 'docker ps -a' und 'supabase status' manuell prüfen."
             }
         }
     }
@@ -283,7 +288,7 @@ for ($attempt = 1; $attempt -le 3; $attempt++) {
     }
     if ($anonKey -and $serviceKey) { break }
     if ($attempt -lt 3) {
-        Write-Warn "Keys noch nicht verfuegbar (Versuch $attempt/3). Warte 5 Sekunden..."
+        Write-Warn "Keys noch nicht verfügbar (Versuch $attempt/3). Warte 5 Sekunden..."
         Start-Sleep -Seconds 5
     }
 }
@@ -298,8 +303,8 @@ if (-not $anonKey -or -not $serviceKey) {
 }
 
 if (-not $apiUrl)     { $apiUrl = "http://127.0.0.1:$portApi" }
-if (-not $anonKey)    { Write-Err "Anon Key konnte nicht ermittelt werden. Bitte 'supabase status' manuell pruefen." }
-if (-not $serviceKey) { Write-Err "Service Role Key konnte nicht ermittelt werden. Bitte 'supabase status' manuell pruefen." }
+if (-not $anonKey)    { Write-Err "Anon Key konnte nicht ermittelt werden. Bitte 'supabase status' manuell prüfen." }
+if (-not $serviceKey) { Write-Err "Service Role Key konnte nicht ermittelt werden. Bitte 'supabase status' manuell prüfen." }
 
 # --- .env.local schreiben ---
 if (Test-Path $EnvFile) {
