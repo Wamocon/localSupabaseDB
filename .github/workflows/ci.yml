@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Repository auschecken
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: ShellCheck installieren
         run: sudo apt-get install -y shellcheck
@@ -42,7 +42,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Repository auschecken
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: PowerShell Syntaxprüfung (Parser)
         shell: pwsh
@@ -84,7 +84,7 @@ jobs:
     needs: [shellcheck]
     steps:
       - name: Repository auschecken
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Skripte ausführbar machen
         run: |
